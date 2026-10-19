@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.routers import auth, categories
+from app.routers import auth, categories, transactions
 
 # CloudFront는 /api/* 만 EC2로 전달하므로 문서 경로도 /api 아래에 둔다
 app = FastAPI(
@@ -28,6 +28,7 @@ if settings.cors_origin_list:
 
 app.include_router(auth.router)
 app.include_router(categories.router)
+app.include_router(transactions.router)
 
 
 @app.get("/api/health", tags=["health"])
