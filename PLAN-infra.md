@@ -5,7 +5,7 @@
 - 기간: 4일 (하루 8시간)
 - 목표: CloudFront HTTPS 주소에서 가입 → 거래 → 정기결제 목록 → 대시보드가 끝까지 동작하고, 데이터가 EC2 내부 MariaDB에 저장되는 환경을 만든다.
 
-이 문서는 인프라 작업만 다룬다. 앱 요구사항은 `PRD.md`, 전체 일정은 팀 공용 `PLAN.md`를 본다.
+이 문서는 인프라 작업만 다룬다. 앱 요구사항은 `PRD.md`, 팀 공통 규칙은 `AGENTS.md`, AI 작업 지침은 `docs/agent-infra.md`, 백엔드 계획은 `PLAN-backend.md`를 본다.
 
 ---
 

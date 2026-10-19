@@ -1,6 +1,6 @@
 # DB 설계 — EC2 내부 MariaDB
 
-- 기준: `PRD.md` v3.2(AGENTS.md 기준 문서), `backend/app/models.py`, `docs/ai-infra.md`, `PLAN.md`
+- 기준: `PRD.md` v3.2(AGENTS.md 기준 문서), `backend/app/models.py`, `docs/ai-infra.md`, `PLAN-infra.md`
 - 대상: EC2의 MariaDB 한 대. FastAPI만 `127.0.0.1:3306`으로 접속한다.
 - 테이블 생성: B의 `python -m app.init_db`(SQLAlchemy `create_all` + 기본 카테고리 시드). 이 문서의 SQL은 **참조·검증용**이고 `backend/`는 수정하지 않는다.
 - 이 문서의 SQL·권한·백업 명령은 MariaDB 11.8.6(로컬 WSL, 임시 인스턴스)과 Python 3.14.4에서 실행해 확인했다. EC2에 설치되는 버전은 설치 후 `mariadb --version`으로 다시 확인한다.
