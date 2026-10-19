@@ -1,4 +1,6 @@
-from fastapi import Depends, FastAPI
+import logging
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -8,6 +10,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.routers import auth, categories, dashboard, subscriptions, transactions
+
+logger = logging.getLogger("ledger")
 
 # CloudFront는 /api/* 만 EC2로 전달하므로 문서 경로도 /api 아래에 둔다
 app = FastAPI(
@@ -31,6 +35,13 @@ app.include_router(categories.router)
 app.include_router(transactions.router)
 app.include_router(subscriptions.router)
 app.include_router(dashboard.router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception(request: Request, exc: Exception):
+    # 예상치 못한 오류도 {"detail": ...} 형식으로 응답, 상세 내용은 서버 로그(journalctl)에만 남긴다
+    logger.exception("Unhandled error: %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "서버 오류가 발생했습니다."})
 
 
 @app.get("/api/health", tags=["health"])
