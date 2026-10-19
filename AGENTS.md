@@ -29,6 +29,7 @@
    - 정기결제 수정, 정기결제 → 거래 자동/수동 반영("가계부에 추가" 버튼), 결제일 계산·D-day·월 환산 금액
    - 거래 유형/카테고리 필터·검색·고급 정렬, 카테고리 수정·삭제
    - 회원 탈퇴, 비밀번호 재설정, 이메일 인증, 소셜 로그인, Cognito
-   - Docker, Alembic, Pytest 자동화, CI/CD, IaC, AI 기능, 복잡한 애니메이션
+   - Docker, Alembic, Pytest 자동화, CI/CD, IaC, AI 기능
+   - 화면 연출용 애니메이션(홈 화면의 배경·등장·hover 효과, 차트 등장 효과 등)은 **허용**한다. 단 OS의 "동작 줄이기"(`prefers-reduced-motion`) 설정을 존중하고, 기능·API·데이터 흐름은 바꾸지 않는다.
 5. 모든 API 경로는 `/api`로 시작한다. 프론트는 항상 **상대 경로 `/api/...`**로 호출한다 (로컬은 Vite 프록시, 운영은 CloudFront가 같은 도메인으로 전달).
 6. 브랜치: `feat/frontend`, `feat/infra`, `feat/backend`. `main`은 항상 배포 가능한 상태로 유지하고 PR로 병합한다 (Squash 대신 merge commit).
