@@ -1,0 +1,225 @@
+@import "tailwindcss";
+
+/* ───────────── 디자인 토큰 ─────────────
+   Gemini 스타일: 밝은 서피스, 큰 곡률, 얇고 부드러운 그림자.
+   포인트 색은 수입(초록)·지출(빨강). 기존 토큰 값은 변경하지 않고 확장만 한다. */
+@theme {
+  /* 글꼴: Pretendard 우선(설치된 경우), 없으면 시스템 한글 글꼴로 폴백 */
+  --font-sans: "Pretendard Variable", "Pretendard", system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo",
+    "Noto Sans KR", "Malgun Gothic", sans-serif;
+
+  /* 브랜드 색 (값 유지) */
+  --color-surface: #f8fafd;
+  --color-accent: #0f9d58;
+  --color-accent-soft: #d7f0e1;
+  --color-gem-ink: #1f1f1f;
+  /* 수입·지출 색은 브랜드 그라데이션의 시작(초록)·끝(빨강)과 동일 */
+  --color-income: #12b76a;
+  --color-expense: #f04452;
+
+  /* 글자용 진한 색 (흰 배경 대비 WCAG AA 4.5:1 이상).
+     채움·배지·차트에는 위의 브랜드 색을, 작은 글자와 금액에는 아래 -ink 색을 쓴다. */
+  --color-income-ink: #0a7a45;
+  --color-expense-ink: #c8283a;
+  --color-accent-ink: #0b7a43;
+
+  /* 텍스트 위계: 제목(gem-ink) > 본문(ink-muted) > 보조(ink-subtle). 모두 AA 이상 */
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #64748b;
+
+  /* 카드·구분선 테두리: 아주 옅은 1px */
+  --color-line: rgb(226 232 240 / 0.7);
+
+  /* 곡률 */
+  --radius-control: 0.875rem; /* 입력창·작은 버튼 */
+  --radius-card: 1.25rem; /* 카드 */
+  --radius-sheet: 1.75rem; /* 모달·하단 시트 */
+
+  /* 그림자 3단계 (얇고 부드럽게) */
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 18px -8px rgb(15 23 42 / 0.1);
+  --shadow-pop: 0 2px 6px rgb(15 23 42 / 0.06), 0 14px 36px -10px rgb(15 23 42 / 0.22);
+}
+
+@utility text-gradient {
+  background: linear-gradient(90deg, var(--color-income) 0%, #f2b83d 52%, var(--color-expense) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+  line-height: 1.25 !important;
+  padding: 0.05em 0.06em 0.22em;
+}
+
+body {
+  @apply bg-surface text-gem-ink antialiased;
+}
+
+/* ───────────── 반복되는 클래스 조합 ───────────── */
+@layer components {
+  /* 카드: 옅은 테두리 + 부드러운 그림자 */
+  .card {
+    @apply rounded-card border border-line bg-white shadow-card;
+  }
+  /* 호버 시 살짝 떠오르는 카드 */
+  .card-lift {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-pop;
+  }
+
+  /* 타이포 위계 */
+  .type-title {
+    @apply text-2xl font-bold tracking-tight text-gem-ink;
+  }
+  .type-heading {
+    @apply text-base font-semibold text-gem-ink;
+  }
+  .type-body {
+    @apply text-sm text-ink-muted;
+  }
+  .type-caption {
+    @apply text-xs text-ink-subtle;
+  }
+
+  /* 금액·합계: 자릿수 정렬 */
+  .num {
+    @apply font-medium tabular-nums;
+  }
+  .num-strong {
+    @apply font-semibold tabular-nums;
+  }
+
+  /* 키보드 포커스 링 (accent) */
+  .focus-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none;
+  }
+
+  /* 입력창·선택 상자 공통 */
+  .field {
+    @apply h-11 w-full rounded-control border border-slate-300 bg-white px-3.5 text-sm text-gem-ink transition duration-150 placeholder:text-slate-400 hover:border-slate-400 focus:border-accent focus:bg-accent-soft/20 focus:ring-4 focus:ring-accent/15 focus:outline-none;
+  }
+  .field-error {
+    @apply border-red-500 hover:border-red-500 focus:border-red-500 focus:ring-red-500/15;
+  }
+
+  /* 알약형 칩 (합계 등) */
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-sm shadow-soft;
+  }
+}
+
+/* ───────────── 홈 화면 장식 ───────────── */
+@layer components {
+  /* 옅은 점 패턴: 가장자리로 갈수록 사라진다 */
+  .dot-pattern {
+    background-image: radial-gradient(rgb(15 23 42 / 0.1) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 25%, transparent 78%);
+    mask-image: radial-gradient(ellipse at center, #000 25%, transparent 78%);
+  }
+}
+
+/* 아이콘 선 그리기: pathLength=1 인 도형의 stroke-dashoffset 을 1 → 0 으로 */
+.icon-draw * {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+@keyframes icon-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.group:hover .icon-draw *,
+.group:focus-visible .icon-draw * {
+  animation: icon-draw 0.8s ease-out both;
+}
+
+/* ───────────── 애니메이션 ───────────── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* 메시 그라데이션 블러 원이 아주 천천히 떠다닌다 (transform 만 사용) */
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(9vw, 7vh, 0) scale(1.18); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50% { transform: translate3d(-8vw, 9vh, 0) scale(0.9); }
+}
+@keyframes drift-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(7vw, -8vh, 0) scale(1.2); }
+}
+@keyframes drift-d {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(0.95); }
+  50% { transform: translate3d(-9vw, -6vh, 0) scale(1.12); }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* 홈 화면: 요소가 아래에서 위로 부드럽게 나타난다. 지연 시간은 요소마다 인라인으로 지정 */
+.animate-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
+/* 페이지 전환: 가벼운 fade-up */
+.animate-page {
+  animation: fade-up 0.35s ease-out both;
+}
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out both;
+}
+/* 모달 패널: 모바일은 아래에서 올라오는 시트, 데스크톱(sm 이상)은 fade + scale */
+.modal-panel {
+  animation: sheet-up 0.22s ease-out both;
+}
+@media (min-width: 40rem) {
+  .modal-panel {
+    animation: pop-in 0.18s ease-out both;
+  }
+}
+
+/* "동작 줄이기" 설정을 존중: 모든 등장 애니메이션 비활성화 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-page,
+  .animate-fade-in,
+  .modal-panel,
+  .group:hover .icon-draw *,
+  .group:focus-visible .icon-draw * {
+    animation: none;
+  }
+}
