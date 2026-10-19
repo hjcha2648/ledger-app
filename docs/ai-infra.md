@@ -1,6 +1,6 @@
 # 인프라 AI 컨텍스트
 
-> 인프라 작업 시 AI 도우미에게 이 문서를 제공한다. 공통 규칙은 [AGENTS.md](../AGENTS.md).
+> 인프라 작업 시 AI 도우미에게 이 문서를 제공한다. 공통 규칙은 [AGENTS.md](../AGENTS.md), 인프라 작업 지침은 [agent-infra.md](agent-infra.md), 계획·결정 표는 [PLAN-infra.md](../PLAN-infra.md).
 > **AWS 액세스 키, DB 비밀번호, JWT 키를 프롬프트에 넣지 말 것.** 필요하면 `<DB_PASSWORD>` 같은 자리표시자로 쓴다.
 
 ## 아키텍처 (PRD §2)
