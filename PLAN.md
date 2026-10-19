@@ -4,16 +4,26 @@
 > 담당: B — 백엔드·DB / 브랜치: `feat/backend`
 > 목표: FastAPI + SQLAlchemy + MariaDB로 인증·카테고리·거래·정기결제(C/R/D)·대시보드 API를 완성하고, A가 EC2에 그대로 배포할 수 있는 상태로 넘긴다.
 
+### 진행 현황 (2026-10-19 기준)
+
+| 상태 | STEP |
+|---|---|
+| ✅ 완료 | 0~5, 7, 8, 10, 11, 13 / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) |
+| ⏳ 팀 대기 | 6 (API 계약 공유·PR 병합), 9·12 (EC2·CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
+| ❓ 결정 필요 | `created_at` 등 UTC 시각에 `Z` 표기 여부 (C 답변 대기) |
+
+- API 14개 구현 완료, 로컬 스모크 테스트 51개 PASS
+
 ---
 
 ## 0. 완료 기준 (백엔드 관점 DoD)
 
-- [ ] PRD §5의 API 14개가 모두 동작한다 (`PATCH /api/subscriptions/{id}`는 만들지 않음).
-- [ ] 모든 업무 API는 Bearer JWT 필수이며, `user_id`는 JWT에서만 가져온다.
-- [ ] 다른 사용자의 거래·정기결제·카테고리는 조회·수정·삭제 시 **404**.
-- [ ] 대시보드는 `transactions`만 집계한다 (정기결제 금액 미포함).
-- [ ] `python -m app.init_db` 한 번으로 테이블 생성 + 기본 카테고리 시드가 끝난다 (여러 번 실행해도 안전).
-- [ ] 로컬(WSL MariaDB)과 EC2(내부 MariaDB) 양쪽에서 `.env`만 바꿔 동일하게 실행된다.
+- [x] PRD §5의 API 14개가 모두 동작한다 (`PATCH /api/subscriptions/{id}`는 만들지 않음).
+- [x] 모든 업무 API는 Bearer JWT 필수이며, `user_id`는 JWT에서만 가져온다.
+- [x] 다른 사용자의 거래·정기결제·카테고리는 조회·수정·삭제 시 **404**.
+- [x] 대시보드는 `transactions`만 집계한다 (정기결제 금액 미포함).
+- [x] `python -m app.init_db` 한 번으로 테이블 생성 + 기본 카테고리 시드가 끝난다 (여러 번 실행해도 안전).
+- [ ] 로컬(WSL MariaDB)과 EC2(내부 MariaDB) 양쪽에서 `.env`만 바꿔 동일하게 실행된다. — 로컬 완료, EC2 대기
 
 ---
 
@@ -199,38 +209,38 @@ ENABLE_DOCS=true
 
 ### Day 1 — 기반 + 인증 + API 계약 확정
 
-- [ ] `backend/` 구조 생성, `requirements.txt`, `.env.example`, `.gitignore`
-- [ ] WSL MariaDB에 `ledger_db`(utf8mb4) + `app_user` 생성, 권한은 `ledger_db.*`에만
-- [ ] `config.py`, `database.py` (`pool_pre_ping=True`, `pool_recycle=3600`)
-- [ ] 4개 모델 작성 + `init_db.py` (create_all + 시드, 재실행 안전)
-- [ ] `security.py`, `deps.py`, `/api/auth/register|login|me`, `/api/health`
+- [x] `backend/` 구조 생성, `requirements.txt`, `.env.example`, `.gitignore`
+- [x] WSL MariaDB에 `ledger_db`(utf8mb4) + `app_user` 생성, 권한은 `ledger_db.*`에만
+- [x] `config.py`, `database.py` (`pool_pre_ping=True`, `pool_recycle=3600`)
+- [x] 4개 모델 작성 + `init_db.py` (create_all + 시드, 재실행 안전)
+- [x] `security.py`, `deps.py`, `/api/auth/register|login|me`, `/api/health`
 - [ ] **§5 API 계약을 C와 확정** → 변경 사항 반영 후 팀 공유 (C는 이걸로 목 데이터 작업)
 - [ ] A에게 실행 명령/포트/환경 변수 목록 전달 (§8)
 - 종료 조건: 로컬에서 회원가입 → 로그인 → `/api/auth/me` 성공, 중복 가입 409
 
 ### Day 2 — 카테고리 + 거래 CRUD
 
-- [ ] `GET/POST /api/categories` (기본 + 내 카테고리, 중복 409)
-- [ ] `get_usable_category` 헬퍼
-- [ ] 거래 `GET(month)/POST/PATCH/DELETE`
+- [x] `GET/POST /api/categories` (기본 + 내 카테고리, 중복 409)
+- [x] `get_usable_category` 헬퍼
+- [x] 거래 `GET(month)/POST/PATCH/DELETE`
 - [ ] Swagger로 전 엔드포인트 수동 확인, C의 거래 화면과 로컬 연동 (Vite proxy `/api` → `localhost:8000`)
 - [ ] A와 EC2에서 venv + 의존성 설치 + `init_db` + systemd 기동 확인 지원
 - 종료 조건: 거래 등록/월별 조회/수정/삭제 동작, 타 계정 거래 404
 
 ### Day 3 — 정기결제 + 대시보드 + E2E
 
-- [ ] 정기결제 `GET/POST/DELETE` (EXPENSE 카테고리만, 거래 미연동)
-- [ ] 대시보드 집계 API (summary / expense_by_category / monthly_compare)
+- [x] 정기결제 `GET/POST/DELETE` (EXPENSE 카테고리만, 거래 미연동)
+- [x] 대시보드 집계 API (summary / expense_by_category / monthly_compare)
 - [ ] C의 정기결제·차트 화면과 연동, 필드명 불일치 즉시 수정
 - [ ] EC2 배포본 갱신(`git pull` → 재시작) 후 CloudFront `/api/*` 경유 호출 확인 (A와 함께)
-- [ ] `scripts/smoke.sh` 작성 (가입→로그인→거래→정기결제→대시보드 curl 흐름)
+- [x] `scripts/smoke.sh` 작성 (가입→로그인→거래→정기결제→대시보드 curl 흐름)
 - 종료 조건: 로컬·CloudFront 양쪽에서 핵심 기능 E2E 연결
 
 ### Day 4 — 검증·버그 수정 (신규 기능 금지)
 
 - [ ] §9 체크리스트 전체 수동 검증 (특히 사용자 격리, 집계 수치)
-- [ ] 오류 응답 형식/상태 코드 일관성 점검
-- [ ] README 백엔드 섹션 작성 (로컬 실행, 환경 변수 키, DB 초기화, 스키마 변경 절차)
+- [x] 오류 응답 형식/상태 코드 일관성 점검
+- [x] README 백엔드 섹션 작성 (로컬 실행, 환경 변수 키, DB 초기화, 스키마 변경 절차)
 - [ ] EC2에 시연 계정·가상 데이터 등록, A의 `mariadb-dump` 백업·복원 확인 지원
 - [ ] 오후: 버그 수정만, `main` 병합 후 최종 배포
 - 종료 조건: CloudFront 주소에서 전체 시연 성공
@@ -257,16 +267,16 @@ ENABLE_DOCS=true
 
 ## 9. 백엔드 수동 테스트 체크리스트
 
-- [ ] 회원가입 성공 / 같은 이메일 재가입 409 / 잘못된 이메일 형식 422
-- [ ] 로그인 성공 / 틀린 비밀번호 401 / 토큰 없이·만료·위조 토큰으로 보호 API 401
-- [ ] 카테고리: 기본 13개 조회, 개인 카테고리 추가, 계정 B에서 A의 개인 카테고리 안 보임
-- [ ] 거래: 수입·지출 등록, 월별 조회(월 경계 1일/말일 포함), 수정, 삭제
-- [ ] 거래: 유형-카테고리 불일치 422, 타인 개인 카테고리 사용 422, 금액 0 → 422
-- [ ] 계정 B가 A의 거래/정기결제 ID로 PATCH/DELETE → 404, A 데이터 그대로
-- [ ] 정기결제: WEEKLY/MONTHLY/YEARLY 등록·목록·삭제, INCOME 카테고리 사용 시 422
-- [ ] 정기결제 등록·삭제 전후로 `transactions` 건수·대시보드 수치 변화 없음
-- [ ] 대시보드: summary 합계 = 거래 목록 합계, 원형 차트 합 = 지출 합계, 6개월 막대 항상 6개
-- [ ] 잘못된 `month` (`2026-13`, `2026-1`, 누락) → 422
+- [x] 회원가입 성공 / 같은 이메일 재가입 409 / 잘못된 이메일 형식 422
+- [x] 로그인 성공 / 틀린 비밀번호 401 / 토큰 없이·만료·위조 토큰으로 보호 API 401
+- [x] 카테고리: 기본 13개 조회, 개인 카테고리 추가, 계정 B에서 A의 개인 카테고리 안 보임
+- [x] 거래: 수입·지출 등록, 월별 조회(월 경계 1일/말일 포함), 수정, 삭제
+- [x] 거래: 유형-카테고리 불일치 422, 타인 개인 카테고리 사용 422, 금액 0 → 422
+- [x] 계정 B가 A의 거래/정기결제 ID로 PATCH/DELETE → 404, A 데이터 그대로
+- [x] 정기결제: WEEKLY/MONTHLY/YEARLY 등록·목록·삭제, INCOME 카테고리 사용 시 422
+- [x] 정기결제 등록·삭제 전후로 `transactions` 건수·대시보드 수치 변화 없음
+- [x] 대시보드: summary 합계 = 거래 목록 합계, 원형 차트 합 = 지출 합계, 6개월 막대 항상 6개
+- [x] 잘못된 `month` (`2026-13`, `2026-1`, 누락) → 422
 - [ ] EC2 재시작 후 서비스 자동 기동, `/api/health` 정상, 데이터 유지
 
 ---
@@ -299,7 +309,7 @@ git pull origin main          # main 최신 내용 반영
 source .venv/bin/activate
 ```
 
-- [ ] 브랜치·venv 확인 (`git branch`, `which python`)
+- [x] 브랜치·venv 확인 (`git branch`, `which python`)
 
 ### STEP 1. 로컬 MariaDB DB·계정 생성 — Day 1 오전
 
@@ -317,13 +327,13 @@ GRANT ALL PRIVILEGES ON ledger_db.* TO 'app_user'@'127.0.0.1';
 FLUSH PRIVILEGES;
 ```
 
-- [ ] 확인: `mariadb -u app_user -p -h 127.0.0.1 ledger_db` 접속 성공
+- [x] 확인: `mariadb -u app_user -p -h 127.0.0.1 ledger_db` 접속 성공
 
 ### STEP 2. 프로젝트 골격 + 의존성 — Day 1 오전
 
-- [ ] `backend/app/`, `schemas/`, `routers/`, `scripts/` 폴더와 빈 `__init__.py` 생성 (§2 구조)
-- [ ] `.gitignore`에 `.env`, `.venv/`, `__pycache__/` 추가
-- [ ] 의존성 설치 후 버전 고정
+- [x] `backend/app/`, `schemas/`, `routers/`, `scripts/` 폴더와 빈 `__init__.py` 생성 (§2 구조)
+- [x] `.gitignore`에 `.env`, `.venv/`, `__pycache__/` 추가
+- [x] 의존성 설치 후 버전 고정
 
 ```bash
 cd backend
@@ -331,28 +341,28 @@ pip install fastapi "uvicorn[standard]" "sqlalchemy>=2.0" pymysql pydantic-setti
 pip freeze > requirements.txt
 ```
 
-- [ ] `.env.example` 작성 (§3), 이를 복사해 `.env`에 실제 값 입력
-- [ ] 커밋: `chore(backend): 프로젝트 구조 및 의존성 설정`
+- [x] `.env.example` 작성 (§3), 이를 복사해 `.env`에 실제 값 입력
+- [x] 커밋: `chore(backend): 프로젝트 구조 및 의존성 설정`
 
 ### STEP 3. 설정·DB 연결·헬스체크 — Day 1 오전
 
-- [ ] `config.py` — `Settings` 클래스로 `.env` 로드
-- [ ] `database.py` — `engine`(`pool_pre_ping`, `pool_recycle`), `SessionLocal`, `Base`, `get_db`
-- [ ] `main.py` — FastAPI 앱, CORS, docs 경로(`/api/docs`), `GET /api/health` (`SELECT 1`)
-- [ ] 확인:
+- [x] `config.py` — `Settings` 클래스로 `.env` 로드
+- [x] `database.py` — `engine`(`pool_pre_ping`, `pool_recycle`), `SessionLocal`, `Base`, `get_db`
+- [x] `main.py` — FastAPI 앱, CORS, docs 경로(`/api/docs`), `GET /api/health` (`SELECT 1`)
+- [x] 확인:
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 curl http://localhost:8000/api/health   # {"status":"ok","db":"ok"}
 ```
 
-- [ ] 커밋: `feat(backend): DB 연결 및 헬스체크 API`
+- [x] 커밋: `feat(backend): DB 연결 및 헬스체크 API`
 
 ### STEP 4. 모델 + DB 초기화 스크립트 — Day 1 오후
 
-- [ ] `models.py` — `User`, `Category`, `Transaction`, `Subscription` (§4, 인덱스 포함)
-- [ ] `init_db.py` — `create_all()` + 기본 카테고리 13개 시드 (이미 있으면 건너뜀)
-- [ ] 확인:
+- [x] `models.py` — `User`, `Category`, `Transaction`, `Subscription` (§4, 인덱스 포함)
+- [x] `init_db.py` — `create_all()` + 기본 카테고리 13개 시드 (이미 있으면 건너뜀)
+- [x] 확인:
 
 ```bash
 python -m app.init_db
@@ -360,18 +370,18 @@ python -m app.init_db          # 두 번 실행해도 중복 없음
 mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) FROM categories;"   # 4개 테이블, 13
 ```
 
-- [ ] 커밋: `feat(backend): DB 모델 및 초기화/시드 스크립트`
+- [x] 커밋: `feat(backend): DB 모델 및 초기화/시드 스크립트`
 
 ### STEP 5. 인증 (회원가입·로그인·me) — Day 1 오후
 
-- [ ] `security.py` — Argon2 해시/검증, JWT 발급/디코드
-- [ ] `deps.py` — `HTTPBearer` + `get_current_user` (실패 시 401)
-- [ ] `schemas/auth.py`, `routers/auth.py` — `register`, `login`, `me`
-- [ ] 확인 (Swagger `http://localhost:8000/api/docs`):
+- [x] `security.py` — Argon2 해시/검증, JWT 발급/디코드
+- [x] `deps.py` — `HTTPBearer` + `get_current_user` (실패 시 401)
+- [x] `schemas/auth.py`, `routers/auth.py` — `register`, `login`, `me`
+- [x] 확인 (Swagger `http://localhost:8000/api/docs`):
   - 가입 201 → 같은 이메일 재가입 409
   - 로그인 → 토큰 받기 → `/api/auth/me` 200
   - 틀린 비밀번호 401, 토큰 없이 `/api/auth/me` 401
-- [ ] 커밋: `feat(backend): 회원가입/로그인/JWT 인증`
+- [x] 커밋: `feat(backend): 회원가입/로그인/JWT 인증`
 
 ### STEP 6. API 계약 확정·공유 — Day 1 종료 전
 
@@ -381,21 +391,21 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 
 ### STEP 7. 카테고리 API — Day 2 오전
 
-- [ ] `schemas/category.py`, `routers/categories.py` — `GET`(기본+내 것, `is_default`), `POST`(중복 409)
-- [ ] 공통 헬퍼 `get_usable_category(db, user_id, category_id, required_type)` 작성
-- [ ] 확인: 계정 A가 추가한 카테고리가 계정 B 목록에 안 보임
-- [ ] 커밋: `feat(backend): 카테고리 조회/추가 API`
+- [x] `schemas/category.py`, `routers/categories.py` — `GET`(기본+내 것, `is_default`), `POST`(중복 409)
+- [x] 공통 헬퍼 `get_usable_category(db, user_id, category_id, required_type)` 작성
+- [x] 확인: 계정 A가 추가한 카테고리가 계정 B 목록에 안 보임
+- [x] 커밋: `feat(backend): 카테고리 조회/추가 API`
 
 ### STEP 8. 거래 CRUD — Day 2 오전~오후
 
-- [ ] `utils.py` — `parse_month("YYYY-MM")` → `(시작일, 다음 달 1일)`, 형식 오류 422
-- [ ] `schemas/transaction.py` — Create / Update(전부 Optional) / Response(`category_name` 포함)
-- [ ] `routers/transactions.py` — `GET ?month`, `POST`, `PATCH /{id}`, `DELETE /{id}`
+- [x] `utils.py` — `parse_month("YYYY-MM")` → `(시작일, 다음 달 1일)`, 형식 오류 422
+- [x] `schemas/transaction.py` — Create / Update(전부 Optional) / Response(`category_name` 포함)
+- [x] `routers/transactions.py` — `GET ?month`, `POST`, `PATCH /{id}`, `DELETE /{id}`
   - 단건은 `id + user_id`로 조회, 없으면 404
   - POST/PATCH 모두 최종 `type`·`category_id` 조합을 `get_usable_category`로 검증
-- [ ] 확인: 등록 → 월별 조회(1일·말일 경계) → 수정 → 삭제, 금액 0·유형 불일치 422, 계정 B로 A 거래 수정/삭제 404
+- [x] 확인: 등록 → 월별 조회(1일·말일 경계) → 수정 → 삭제, 금액 0·유형 불일치 422, 계정 B로 A 거래 수정/삭제 404
 - [ ] C의 거래 화면과 로컬 연동 테스트
-- [ ] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합
+- [ ] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합 — 커밋 완료, PR 병합 대기
 
 ### STEP 9. EC2 최초 배포 지원 — Day 2 오후
 
@@ -406,19 +416,19 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 
 ### STEP 10. 정기결제 C/R/D — Day 3 오전
 
-- [ ] `schemas/subscription.py` — `billing_cycle: Literal["WEEKLY","MONTHLY","YEARLY"]`
-- [ ] `routers/subscriptions.py` — `GET`, `POST`(EXPENSE 카테고리만), `DELETE /{id}` (**PATCH 없음**)
-- [ ] 확인: 3가지 주기 등록·목록·삭제, INCOME 카테고리 422, 등록/삭제 전후 거래 건수 변화 없음
-- [ ] 커밋: `feat(backend): 정기결제 등록/조회/삭제 API`
+- [x] `schemas/subscription.py` — `billing_cycle: Literal["WEEKLY","MONTHLY","YEARLY"]`
+- [x] `routers/subscriptions.py` — `GET`, `POST`(EXPENSE 카테고리만), `DELETE /{id}` (**PATCH 없음**)
+- [x] 확인: 3가지 주기 등록·목록·삭제, INCOME 카테고리 422, 등록/삭제 전후 거래 건수 변화 없음
+- [x] 커밋: `feat(backend): 정기결제 등록/조회/삭제 API`
 
 ### STEP 11. 대시보드 집계 — Day 3 오전~오후
 
-- [ ] `schemas/dashboard.py`, `routers/dashboard.py`
+- [x] `schemas/dashboard.py`, `routers/dashboard.py`
   - `summary`: 선택 월 INCOME/EXPENSE 합계, 잔액
   - `expense_by_category`: 카테고리별 지출 합 내림차순
   - `monthly_compare`: 최근 6개월, 빈 달 0 채움, 오래된 달부터
-- [ ] 확인: 거래 목록 합계와 summary 일치, 원형 합 = 지출 합, 막대 항상 6개, 정기결제 금액 미포함
-- [ ] 커밋: `feat(backend): 대시보드 집계 API` → PR 병합
+- [x] 확인: 거래 목록 합계와 summary 일치, 원형 합 = 지출 합, 막대 항상 6개, 정기결제 금액 미포함
+- [ ] 커밋: `feat(backend): 대시보드 집계 API` → PR 병합 — 커밋 완료, PR 병합 대기
 
 ### STEP 12. CloudFront 경유 E2E 연결 — Day 3 오후
 
@@ -428,15 +438,15 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 
 ### STEP 13. 수동 테스트 보조 스크립트 — Day 3 종료 전
 
-- [ ] `scripts/smoke.sh` — `BASE_URL`을 인자로 받아 가입 → 로그인 → 거래 등록 → 정기결제 등록 → 대시보드 조회를 curl로 실행
-- [ ] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행
-- [ ] 커밋: `chore(backend): 스모크 테스트 스크립트`
+- [x] `scripts/smoke.sh` — `BASE_URL`을 인자로 받아 가입 → 로그인 → 거래 등록 → 정기결제 등록 → 대시보드 조회를 curl로 실행
+- [ ] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬 51개 PASS, CloudFront 대기
+- [x] 커밋: `chore(backend): 스모크 테스트 스크립트`
 
 ### STEP 14. 최종 검증·문서화·시연 준비 — Day 4
 
-- [ ] 오전: §9 체크리스트 전부 수행 (특히 계정 A/B 교차 테스트, 집계 수치)
-- [ ] 오전: 오류 응답 상태 코드·`detail` 형식 일관성 정리
-- [ ] 오전: README 백엔드 섹션 (로컬 실행, 환경 변수 키, `init_db`, 스키마 변경 시 `ALTER TABLE` 절차)
+- [ ] 오전: §9 체크리스트 전부 수행 (특히 계정 A/B 교차 테스트, 집계 수치) — EC2 항목 외 완료 (smoke.sh 51개 PASS)
+- [x] 오전: 오류 응답 상태 코드·`detail` 형식 일관성 정리
+- [x] 오전: README 백엔드 섹션 (로컬 실행, 환경 변수 키, `init_db`, 스키마 변경 시 `ALTER TABLE` 절차)
 - [ ] 오후: **신규 기능 금지**, 버그 수정만 → `main` 병합 → EC2 최종 배포
 - [ ] 오후: EC2에 시연 계정·가상 데이터 입력, A의 `mariadb-dump` 백업·복원 확인 지원
 - [ ] 오후: CloudFront 주소에서 전체 시연 리허설
