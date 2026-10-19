@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 환경 변수 (비밀값)
+.env
+*.env
+!.env.example
+
+# Editor / OS
+.vscode/
+.DS_Store
