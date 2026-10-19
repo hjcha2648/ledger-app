@@ -1,8 +1,8 @@
 -- 시스템 기본 카테고리(user_id NULL). 여러 번 실행해도 중복 삽입되지 않는다.
 -- B의 시드 코드가 정식 방법이면 이 파일은 비교·복구용 참조로만 쓴다.
 
-INSERT INTO categories (user_id, name, type)
-SELECT NULL, v.name, v.type
+INSERT INTO categories (user_id, name, type, created_at)
+SELECT NULL, v.name, v.type, UTC_TIMESTAMP()
 FROM (
   SELECT '식비' AS name, 'EXPENSE' AS type UNION ALL
   SELECT '교통', 'EXPENSE' UNION ALL
