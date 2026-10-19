@@ -42,15 +42,15 @@
 | 항목 | 제안 | 확정 시점 | 결정 |
 |---|---|---|---|
 | 리전 | 서울(`ap-northeast-2`) | Day 1 | 미정 |
-| OS | Amazon Linux 2023 또는 Ubuntu (패키지 관리자 `dnf` / `apt`가 달라진다) | Day 1 | **Ubuntu 26.04 LTS** (`apt`). 입력이 "26.94"였으나 26.04로 해석, 확인 필요 |
+| OS | Amazon Linux 2023 또는 Ubuntu (패키지 관리자 `dnf` / `apt`가 달라진다) | Day 1 | **Ubuntu 26.04 LTS** (`apt`). `docs/ai-infra.md`: 로컬 WSL(26.04, Python 3.14)과 버전 일치. `requirements.txt`가 Python 3.14.4에서 설치되는 것을 로컬에서 확인 |
 | 인스턴스 유형·EBS 크기 | 계정의 프리티어·예산 확인 후 결정 | Day 1 | 프리티어 대상 유형(콘솔의 "Free tier eligible" 표시, 메모리 1GB면 스왑 추가). EBS는 gp3 20~30GB 제안 |
-| SSH 접속 방식 | 팀 고정 IP만 허용(22) 또는 SSM Session Manager(22 닫음) | Day 1 | 미정 |
-| 앱 포트 | 80번은 일반 사용자 권한으로 못 쓰므로 8000 같은 비특권 포트 | Day 1 | 미정 |
-| 서비스명 | 예: `ledger-api` | Day 1 | 미정 |
-| 프로젝트·환경 파일 경로 | 홈 디렉터리 하위의 프로젝트 폴더, 환경 파일은 권한 600 | Day 1 | 미정 |
+| SSH 접속 방식 | 팀 고정 IP만 허용(22) 또는 SSM Session Manager(22 닫음) | Day 1 | `docs/ai-infra.md`는 "내 IP만". 팀원이 함께 접속하면 IP 추가 또는 SSM — **확인 필요** |
+| 앱 포트 | 80번은 일반 사용자 권한으로 못 쓰므로 8000 같은 비특권 포트 | Day 1 | **8000** (`docs/ai-infra.md`) |
+| 서비스명 | 예: `ledger-api` | Day 1 | **`ledger-api`** (`docs/ai-infra.md`) |
+| 프로젝트·환경 파일 경로 | 홈 디렉터리 하위의 프로젝트 폴더, 환경 파일은 권한 600 | Day 1 | 프로젝트 `/home/ubuntu/ledger-app`(실행 디렉터리 `backend/`, venv `.venv/`), 환경 파일 `/etc/ledger/backend.env` 권한 600 (`docs/ai-infra.md`) |
 | 고정 주소 | Elastic IP를 붙여 재시작 후에도 CloudFront 원본 주소가 바뀌지 않게 함. 과금 여부 확인 | Day 1 | 미정 |
 | 원본 프로토콜 | CloudFront→EC2는 HTTP(도메인·인증서가 없으면 HTTPS 불가). 한계를 README에 명시 | Day 2 | 미정 |
-| DB 이름·앱 계정 이름 | PRD 예시 기준 `ledger_db`, `app_user` | Day 1 | 미정 |
+| DB 이름·앱 계정 이름 | PRD 예시 기준 `ledger_db`, `app_user` | Day 1 | **`ledger_db`, `app_user`** (`localhost`·`127.0.0.1` 두 계정, `docs/ai-infra.md`·`docs/db-design.md`) |
 
 결정하면 이 표를 갱신하고 B(환경 변수 키·실행 모듈)와 C(CloudFront 주소)에게 알린다.
 
@@ -117,7 +117,7 @@
 | 규칙 | 값 | 비고 |
 |---|---|---|
 | SSH 22 | 팀 고정 IP만 (SSM 사용 시 규칙 없음) | 전체 개방(`0.0.0.0/0`) 금지 |
-| 앱 포트(예: 8000) | CloudFront 관리형 prefix list `com.amazonaws.global.cloudfront.origin_facing` | 직접 접근 차단 효과. 콘솔에서 prefix list 선택 가능 여부 확인. 규칙 한도(기본 60)를 약 55개분 차지하므로 규칙 추가 전에 확인 |
+| 앱 포트(예: 8000) | CloudFront 관리형 prefix list `com.amazonaws.global.cloudfront.origin-facing` | 직접 접근 차단 효과. 콘솔에서 prefix list 선택 가능 여부 확인. 규칙 한도(기본 60)를 약 55개분 차지하므로 규칙 추가 전에 확인 |
 | 3306 | **인바운드 없음** | MariaDB는 로컬 전용 |
 
 ### Day 2 — MariaDB와 API 서버 구동
@@ -135,19 +135,22 @@
 #### T08 — 백엔드 배치
 - [ ] Python 버전 확인(Ubuntu 26.04 기본 버전에서 `requirements.txt`가 설치되는지 먼저 시험, 안 되면 B에게 알림)
 - [ ] 프로젝트 `git clone`, venv 생성, 의존성 설치(B의 `requirements.txt` 기준)
-- [ ] 환경 파일 작성(권한 600): DB 연결 URL, JWT 서명키. B와 키 이름 합의
+- [ ] 환경 파일 `/etc/ledger/backend.env` 작성(권한 600). 키: `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`(비움), `ENABLE_DOCS=false`. 값은 EC2에서 직접 생성(DB 비밀번호는 영숫자 위주, 로컬 값 재사용 금지)
 
 #### T09 — 테이블 생성·시드
-(테이블 정의·제약·B와 합의할 항목: `docs/db-design.md` 3~4장)
-- [ ] B의 초기화 방법에 따라 최초 테이블 생성·기본 카테고리 시드
+(테이블 정의·제약: `docs/db-design.md` 3~4장)
+- [ ] `cd backend && set -a && . /etc/ledger/backend.env && set +a && python -m app.init_db` → `default categories added: 13` (재실행 시 0)
+- [ ] `db/01_schema_reference.sql`과 `SHOW CREATE TABLE` 비교(`docs/db-design.md` 4장)
 
 #### T10 — systemd 서비스
 - [ ] 서비스 작성·등록·시작 (6장 기준)
-- [ ] `/api/health`를 서버 안에서 `curl`로 확인 → 보안 그룹을 통한 외부 접근 확인
+- [ ] `curl http://127.0.0.1:8000/api/health` → `{"status":"ok","db":"ok"}` (DB 실패 시 503), 보안 그룹을 통한 외부 접근 확인
 - [ ] 재시작 후 자동 기동 확인
 
 #### T11 — B의 API 수동 검증 지원
-- [ ] B가 요청하는 API를 EC2에서 수동 검증하도록 지원, `journalctl` 사용법 전달
+- [ ] `cd backend && ./scripts/smoke.sh http://127.0.0.1:8000` → 51개 항목 통과(실패 시 exit 1). 로컬에서 51개 통과 확인함
+- [ ] smoke가 남기는 테스트 계정·개인 카테고리는 시연 전에 정리(README "테스트" 섹션의 정리 SQL)
+- [ ] `journalctl` 사용법 전달
 
 ### Day 3 — S3와 CloudFront
 
@@ -245,17 +248,17 @@
 
 ## 6. systemd 서비스 기준
 
-값은 2.2에서 확정한 뒤 채운다. 아래는 구성 항목이다.
+값은 `docs/ai-infra.md`의 유닛 예시(`/etc/systemd/system/ledger-api.service`)를 따른다.
 
 | 항목 | 설정 |
 |---|---|
-| 실행 사용자 | 일반 사용자(root 아님) |
-| 작업 디렉터리 | 백엔드 프로젝트 폴더 |
-| 환경 | `EnvironmentFile`로 환경 파일 지정(따옴표 없이 `KEY=VALUE`) |
-| 시작 순서 | MariaDB 서비스 이후에 시작(`After=`, `Wants=`) |
-| 실행 명령 | venv의 `uvicorn`으로 `<모듈경로>:app`, 호스트 `0.0.0.0`, 앱 포트 |
-| 재시작 | `Restart=always` |
-| 자동 시작 | `systemctl enable` |
+| 실행 사용자 | `ubuntu`(root 아님) |
+| 작업 디렉터리 | `/home/ubuntu/ledger-app/backend` (여기서 실행해야 `app` 패키지를 찾음) |
+| 환경 | `EnvironmentFile=/etc/ledger/backend.env`(따옴표 없이 `KEY=VALUE`, 권한 600) |
+| 시작 순서 | `After=network.target mariadb.service`, `Requires=mariadb.service` |
+| 실행 명령 | `/home/ubuntu/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers` |
+| 재시작 | `Restart=always`, `RestartSec=3` |
+| 자동 시작 | `WantedBy=multi-user.target`, `systemctl enable --now ledger-api` |
 
 ## 7. 인프라 검증 체크리스트
 
