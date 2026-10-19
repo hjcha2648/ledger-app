@@ -22,7 +22,8 @@ React + Vite + Tailwind CSS + Recharts (+ React Router). 상태 관리 라이브
 | `/transactions` | 월 선택, 거래 테이블, 등록·수정 모달, 삭제 확인 | `GET/POST/PATCH/DELETE /api/transactions`, `GET/POST /api/categories` |
 | `/subscriptions` | 정기결제 목록, 등록 모달, 삭제 확인 | `GET/POST/DELETE /api/subscriptions`, `GET /api/categories` |
 
-- 상단 내비게이션 + 로그아웃 버튼, 기본 반응형. 사이드바·애니메이션·모바일 전용 레이아웃 없음.
+- 상단 내비게이션 + 로그아웃 버튼, 기본 반응형. 사이드바·모바일 전용 레이아웃 없음.
+- 애니메이션: 화면 연출용(홈 배경·등장·hover, 차트 등장 효과 등)은 허용 (팀 결정, 2026-10-19). 단 `prefers-reduced-motion`을 존중하고 기능·API·데이터 흐름은 바꾸지 않는다.
 - 로그인 안 된 상태로 보호 페이지 접근 시 `/login`으로 이동.
 
 ## 반드시 지킬 것
