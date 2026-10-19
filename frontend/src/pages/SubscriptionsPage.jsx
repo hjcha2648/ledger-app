@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createSubscription, deleteSubscription, listSubscriptions } from '../api/subscriptions'
+import PageHeader from '../components/layout/PageHeader'
 import SubscriptionForm from '../components/SubscriptionForm'
+import DataTable, { RowActions, RowIconButton, Td, TableCard, Tr } from '../components/DataTable'
 import Button from '../components/ui/Button'
+import Icon from '../components/ui/Icon'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
 import ErrorMessage from '../components/ui/ErrorMessage'
@@ -9,6 +12,16 @@ import Modal from '../components/ui/Modal'
 import Spinner from '../components/ui/Spinner'
 import useCategories from '../hooks/useCategories'
 import { CYCLE_LABEL, formatDate, formatKRW } from '../utils/format'
+
+const COLUMNS = [
+  { label: '서비스명' },
+  { label: '금액', align: 'right' },
+  { label: '주기' },
+  { label: '결제 기준일' },
+  { label: '카테고리' },
+  { label: '메모' },
+  { label: '작업', srOnly: true },
+]
 
 export default function SubscriptionsPage() {
   const [subs, setSubs] = useState([])
@@ -63,23 +76,26 @@ export default function SubscriptionsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">정기결제</h1>
+        <PageHeader icon="subscriptions" title="정기결제" subtitle="구독 서비스를 목록으로 관리해요" />
         <Button onClick={() => setCreating(true)} disabled={cats.loading || Boolean(cats.error)}>
           + 정기결제 등록
         </Button>
       </div>
 
-      <p className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
-        참고용 목록입니다. 가계부 거래나 대시보드 통계에는 자동으로 반영되지 않습니다. 실제 결제는 거래 내역에서
-        직접 입력해 주세요.
-      </p>
+      <div className="flex gap-3 rounded-2xl border border-accent/15 bg-accent-soft/60 px-4 py-3 text-sm text-gem-ink">
+        <Icon name="info" className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" />
+        <p>
+          참고용 목록입니다. 거래 내역이나 대시보드 통계에는 자동으로 반영되지 않습니다. 실제 결제는 거래 내역에서
+          직접 입력해 주세요.
+        </p>
+      </div>
 
       <ErrorMessage message={cats.error} onRetry={cats.reload} />
       <ErrorMessage message={actionError} />
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+      <TableCard>
         {loading ? (
           <Spinner />
         ) : error ? (
@@ -89,38 +105,31 @@ export default function SubscriptionsPage() {
         ) : subs.length === 0 ? (
           <EmptyState message="등록된 정기결제가 없습니다." />
         ) : (
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
-              <tr>
-                <th className="px-4 py-2 font-medium">서비스명</th>
-                <th className="px-4 py-2 text-right font-medium">금액</th>
-                <th className="px-4 py-2 font-medium">주기</th>
-                <th className="px-4 py-2 font-medium">결제 기준일</th>
-                <th className="px-4 py-2 font-medium">카테고리</th>
-                <th className="px-4 py-2 font-medium">메모</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {subs.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium">{s.name}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right">{formatKRW(s.amount_krw)}</td>
-                  <td className="px-4 py-2.5">{CYCLE_LABEL[s.billing_cycle]}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-gray-600">{formatDate(s.billing_anchor_date)}</td>
-                  <td className="px-4 py-2.5">{categoryName.get(s.category_id) ?? '-'}</td>
-                  <td className="max-w-48 truncate px-4 py-2.5 text-gray-600">{s.memo || '-'}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                    <Button variant="ghost" className="!px-2 !py-1" onClick={() => setDeleting(s)}>
-                      삭제
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable columns={COLUMNS}>
+            {subs.map((s) => (
+              <Tr key={s.id}>
+                <Td className="font-medium">{s.name}</Td>
+                <Td align="right" className="num-strong whitespace-nowrap">
+                  {formatKRW(s.amount_krw)}
+                </Td>
+                <Td>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-ink-muted">
+                    {CYCLE_LABEL[s.billing_cycle]}
+                  </span>
+                </Td>
+                <Td className="whitespace-nowrap text-ink-muted">{formatDate(s.billing_anchor_date)}</Td>
+                <Td>{s.category_name ?? categoryName.get(s.category_id) ?? '-'}</Td>
+                <Td className="max-w-48 truncate text-ink-muted">{s.memo || '-'}</Td>
+                <Td align="right" className="whitespace-nowrap">
+                  <RowActions>
+                    <RowIconButton icon="trash" label="정기결제 삭제" tone="danger" onClick={() => setDeleting(s)} />
+                  </RowActions>
+                </Td>
+              </Tr>
+            ))}
+          </DataTable>
         )}
-      </div>
+      </TableCard>
 
       {creating && (
         <Modal title="정기결제 등록" onClose={() => setCreating(false)}>

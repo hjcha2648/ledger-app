@@ -12,7 +12,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const registered = location.state?.registered
-  const redirectTo = location.state?.from?.pathname ?? '/dashboard'
+  const redirectTo = location.state?.from?.pathname ?? '/home'
 
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
@@ -44,15 +44,15 @@ export default function LoginPage() {
       footer={
         <>
           계정이 없으신가요?{' '}
-          <Link to="/register" className="font-medium text-gray-900 underline">
+          <Link to="/register" className="focus-ring rounded font-semibold text-gem-ink underline decoration-slate-300 underline-offset-4 transition-colors hover:decoration-accent">
             회원가입
           </Link>
         </>
       }
     >
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <form onSubmit={onSubmit} className="space-y-3" noValidate>
         {registered && (
-          <p role="status" className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <p role="status" className="rounded-2xl border border-accent/15 bg-accent-soft/60 px-4 py-3 text-sm text-gem-ink">
             회원가입이 완료되었습니다. 로그인해 주세요.
           </p>
         )}

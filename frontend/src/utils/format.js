@@ -11,7 +11,7 @@ export function formatSignedKRW(type, amount) {
 
 // 수입=초록, 지출=빨강
 export function typeColorClass(type) {
-  return type === 'INCOME' ? 'text-green-600' : 'text-red-600'
+  return type === 'INCOME' ? 'text-income-ink' : 'text-expense-ink'
 }
 
 export const TYPE_LABEL = { INCOME: '수입', EXPENSE: '지출' }

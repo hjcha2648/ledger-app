@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { fieldErrorsFrom } from '../utils/formErrors'
 import { CYCLE_LABEL } from '../utils/format'
 import { today } from '../utils/month'
 import Button from './ui/Button'
@@ -48,6 +49,7 @@ export default function SubscriptionForm({ categories, onSubmit, onCancel }) {
         memo: form.memo.trim() || null,
       })
     } catch (err) {
+      setFieldErrors(fieldErrorsFrom(err, { amount_krw: 'amount' }))
       setError(err.message)
       setSaving(false)
     }

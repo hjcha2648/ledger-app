@@ -1,55 +1,27 @@
-# 프론트엔드가 가정한 API 계약 (B와 Day 1 합의용)
+# API 계약 (프론트엔드 참고)
 
-프론트는 아래 형식을 기준으로 구현했다. 다르면 B가 알려주거나 프론트가 `src/api/*.js`만 수정한다.
-목 서버(`src/api/mock/index.js`)도 같은 형식을 따른다.
+API 계약의 **기준 문서는 저장소 루트의 [docs/api-contract.md](../../docs/api-contract.md)** 이다(백엔드 구현과 일치). 필드명·경로·상태 코드는 그 문서를 따르며, 프론트에서 추측하거나 바꾸지 않는다. (AGENTS.md 규칙 1)
 
-## 공통
-- 모든 경로는 `/api` 접두어, 인증 API 외에는 `Authorization: Bearer <token>`.
-- 목록 응답은 **`{items: [...]}`가 아닌 순수 배열**.
-- 날짜 `YYYY-MM-DD`, 월 `YYYY-MM`, 필드명 snake_case, 유형 `INCOME`/`EXPENSE`.
-- 오류는 `{"detail": "문자열"}` 또는 422의 `{"detail": [{"loc": [...], "msg": "..."}]}` 둘 다 처리한다.
-- 401(토큰 만료·변조) 시 프론트는 자동 로그아웃한다.
-- DELETE 성공은 `204 No Content` (본문 없음). 200 + JSON이어도 무방.
+이 파일은 초기에 프론트가 가정했던 계약을 담고 있었으나 루트 문서와 중복되어 내용을 제거했다. 아래는 루트 계약을 프론트가 **어떻게 처리하는지**만 정리한 것이다.
 
-## 인증
-| 요청 | 본문 | 응답 |
+## 프론트의 처리 방식
+
+| 계약 내용 | 프론트 처리 | 위치 |
 |---|---|---|
-| POST `/auth/register` | `{email, password}` | `201 {id, email}` — 중복이면 409 |
-| POST `/auth/login` | `{email, password}` (**JSON**, OAuth2 form 아님) | `{access_token, token_type}` — 실패 시 401 |
-| GET `/auth/me` | — | `{id, email}` (선택 구현. 없어도 프론트는 사용하지 않음) |
+| 모든 경로는 `/api` 접두어, 상대 경로 호출 | `fetch('/api...')` 만 사용. 개발은 Vite 프록시, 운영은 CloudFront | `src/api/client.js`, `vite.config.js` |
+| `Authorization: Bearer` | 토큰을 `sessionStorage`에 저장하고 자동 첨부 | `src/api/client.js` |
+| 401 (만료·위조) | 토큰 삭제 후 `/login` 이동. 로그인 실패 401은 일반 오류로 표시 | `client.js`, `AuthContext.jsx` |
+| `detail` 문자열 | 그대로 표시 | `client.js` |
+| 422 `detail` 배열 | `loc` 마지막 값(필드명)을 입력칸 오류로 표시, 전체 메시지는 "입력값을 확인해 주세요." | `client.js`, `utils/formErrors.js` |
+| 204 (DELETE) | 본문 파싱 없이 `null` 반환 | `client.js` |
+| 비밀번호 8~64자 | 회원가입 폼에서 같은 범위로 검증 | `RegisterPage.jsx` |
+| 거래·정기결제 응답의 `category_name` | 표에 우선 사용, 없으면 카테고리 목록과 조인 | `TransactionsPage.jsx`, `SubscriptionsPage.jsx` |
+| 카테고리 `is_default`, 정렬(EXPENSE → INCOME) | 서버 순서 그대로 사용, 폼에서는 선택한 유형만 필터 | `TransactionForm.jsx` |
+| 카테고리 id 하드코딩 금지 | 이름·유형으로 찾음 ("구독·정기결제" 기본 선택) | `SubscriptionForm.jsx` |
+| `monthly_compare` 항상 6개 | 그대로 막대 차트 데이터로 사용 | `MonthlyBarChart.jsx` |
+| `expense_by_category` 빈 배열 가능 | 빈 상태 메시지 표시 | `CategoryPieChart.jsx` |
+| 회원가입 후 토큰 없음 | 가입 성공 후 `/login`으로 이동 | `RegisterPage.jsx` |
 
-- 비밀번호 최소 길이: 8자 (프론트 검증과 서버 검증을 맞출 것).
-- 회원가입 후 프론트는 로그인 화면으로 이동한다(자동 로그인 없음).
+## 목 서버
 
-## 카테고리
-- GET `/categories` → `[{id, user_id, name, type, created_at}]` (기본 + 내 것, `user_id`는 기본이면 null)
-- POST `/categories` `{name, type}` → 생성된 카테고리
-
-## 거래
-- GET `/transactions?month=YYYY-MM` → **최신순**(`occurred_on` desc, `id` desc) 배열
-  `[{id, type, amount_krw, occurred_on, category_id, merchant, memo, created_at, updated_at}]`
-- 응답에 `category_name`은 **없다고 가정**하고 프론트가 `/categories`와 조인한다. 포함해 주면 조인을 생략한다.
-- POST `/transactions` `{type, amount_krw, occurred_on, category_id, merchant?, memo?}` → 생성된 거래
-- PATCH `/transactions/{id}` 일부 필드 → 수정된 거래
-- DELETE `/transactions/{id}`
-- 타 사용자 자원은 404, 유형·카테고리 불일치는 422.
-
-## 정기결제 (목록 관리만)
-- GET `/subscriptions` → `[{id, name, category_id, amount_krw, billing_cycle, billing_anchor_date, memo, created_at}]`
-- POST `/subscriptions` `{name, amount_krw, billing_cycle, billing_anchor_date, category_id, memo?}`
-  (`billing_cycle`: `WEEKLY`/`MONTHLY`/`YEARLY`, 카테고리는 EXPENSE만)
-- DELETE `/subscriptions/{id}`
-
-## 대시보드
-GET `/dashboard?month=YYYY-MM`
-```json
-{
-  "month": "2026-10",
-  "summary": {"income_krw": 0, "expense_krw": 0, "balance_krw": 0},
-  "expense_by_category": [{"category_id": 1, "name": "식비", "amount_krw": 0}],
-  "monthly_compare": [{"month": "2026-05", "income_krw": 0, "expense_krw": 0}]
-}
-```
-- `monthly_compare`는 **선택 월을 마지막으로 하는 최근 6개월, 오래된 달 → 최신 달 순, 데이터가 없는 달도 0으로 포함**.
-- `expense_by_category`는 금액 내림차순, 지출이 없으면 빈 배열.
-- 정기결제 금액은 집계에 포함하지 않는다.
+`VITE_USE_MOCK=true`일 때 쓰는 `src/api/mock/index.js`는 위 계약의 응답 모양(필드, 상태 코드, 422 필드 오류, `category_name`, `is_default`, `expires_in`, 이메일 소문자 저장, 카테고리 409 등)을 따른다. 계약이 바뀌면 목 서버도 함께 맞춘다.

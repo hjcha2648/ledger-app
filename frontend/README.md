@@ -1,4 +1,4 @@
-# 가계부 프론트엔드
+# Budgo 프론트엔드
 
 React 19 · Vite · Tailwind CSS 4 · Recharts · react-router-dom 7
 
@@ -31,5 +31,5 @@ src/
 ```
 
 ## 문서
-- [API 계약 가정](docs/api-contract.md)
+- [API 계약 처리 방식](docs/api-contract.md) (기준 문서: 루트 [docs/api-contract.md](../docs/api-contract.md))
 - [배포 가이드](docs/deployment.md)

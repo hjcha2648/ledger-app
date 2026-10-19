@@ -23,11 +23,11 @@ const SYSTEM_CATEGORIES = [
     (name) => ({ name, type: 'EXPENSE' }),
   ),
   ...['급여', '용돈', '부수입', '기타수입'].map((name) => ({ name, type: 'INCOME' })),
-].map((c, i) => ({ id: i + 1, user_id: null, created_at: '2026-01-01T00:00:00', ...c }))
+].map((c, i) => ({ id: i + 1, user_id: null, ...c }))
 
 const db = {
   nextId: { user: 2, category: 100, transaction: 1, subscription: 1 },
-  users: [{ id: 1, email: 'demo@example.com', password: 'demo1234' }],
+  users: [{ id: 1, email: 'demo@example.com', password: 'demo1234', created_at: '2026-01-01T00:00:00' }],
   categories: [...SYSTEM_CATEGORIES],
   transactions: [],
   subscriptions: [],
@@ -102,44 +102,59 @@ function visibleCategory(userId, categoryId) {
   return db.categories.find((c) => c.id === categoryId && (c.user_id === null || c.user_id === userId))
 }
 
-function checkAmount(v) {
-  if (!Number.isInteger(v) || v < 1) throw new ApiError(422, 'amount_krw: 금액은 1원 이상의 정수여야 합니다.')
+// API 계약: 형식 검증 실패(금액 0, 필수 누락, 잘못된 enum 등)는 422 + 배열 detail 이다.
+// 실제 클라이언트는 이를 fields 로 파싱하므로 목 서버도 같은 모양(ApiError.fields)으로 던진다.
+const INVALID_INPUT = '입력값을 확인해 주세요.'
+function invalid(field) {
+  return new ApiError(422, INVALID_INPUT, { [field]: INVALID_INPUT })
 }
 
-function checkDate(v) {
+function checkAmount(v) {
+  if (!Number.isInteger(v) || v < 1) throw invalid('amount_krw')
+}
+
+function checkDate(v, field) {
   if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v) || Number.isNaN(Date.parse(v))) {
-    throw new ApiError(422, 'date: YYYY-MM-DD 형식이어야 합니다.')
+    throw invalid(field)
   }
 }
 
 function checkMonth(v) {
   if (typeof v !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(v)) {
-    throw new ApiError(422, 'month: YYYY-MM 형식이어야 합니다.')
+    throw new ApiError(422, 'month 는 YYYY-MM 형식이어야 합니다.')
   }
 }
 
 const strip = ({ user_id, ...rest }) => rest // eslint-disable-line no-unused-vars
 
+// 응답 모양: 거래·정기결제에는 category_name 이 포함된다 (API 계약)
+const categoryNameOf = (id) => db.categories.find((c) => c.id === id)?.name ?? null
+const pubItem = (item) => ({ ...strip(item), category_name: categoryNameOf(item.category_id) })
+// 카테고리 응답: { id, name, type, is_default }
+const pubCategory = (c) => ({ id: c.id, name: c.name, type: c.type, is_default: c.user_id === null })
+
 // ---------- auth ----------
 export const mockAuth = {
-  async register({ email, password }) {
+  async register({ email, password }) {  // eslint-disable-line no-param-reassign
     await wait()
-    if (!email || !password || password.length < 8) throw new ApiError(422, 'password: 8자 이상이어야 합니다.')
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw invalid('email')
+    if (!password || password.length < 8 || password.length > 64) throw invalid('password') // 8~64자
+    email = email.toLowerCase() // 이메일은 소문자로 저장
     if (db.users.some((u) => u.email === email)) throw new ApiError(409, '이미 가입된 이메일입니다.')
-    const user = { id: db.nextId.user++, email, password }
+    const user = { id: db.nextId.user++, email, password, created_at: new Date().toISOString().slice(0, 19) }
     db.users.push(user)
-    return { id: user.id, email: user.email }
+    return { id: user.id, email: user.email, created_at: user.created_at }
   },
   async login({ email, password }) {
     await wait()
-    const user = db.users.find((u) => u.email === email && u.password === password)
+    const user = db.users.find((u) => u.email === String(email).toLowerCase() && u.password === password)
     if (!user) throw new ApiError(401, '이메일 또는 비밀번호가 올바르지 않습니다.')
-    return { access_token: `mock-${user.id}`, token_type: 'bearer' }
+    return { access_token: `mock-${user.id}`, token_type: 'bearer', expires_in: 3600 }
   },
   async me() {
     await wait(100)
     const user = db.users.find((u) => u.id === currentUserId())
-    return { id: user.id, email: user.email }
+    return { id: user.id, email: user.email, created_at: user.created_at }
   },
 }
 
@@ -148,22 +163,24 @@ export const mockCategories = {
   async list() {
     await wait(150)
     const uid = currentUserId()
-    return db.categories.filter((c) => c.user_id === null || c.user_id === uid)
+    // 정렬: type(EXPENSE → INCOME), id 순
+    return db.categories
+      .filter((c) => c.user_id === null || c.user_id === uid)
+      .sort((a, b) => (a.type === b.type ? a.id - b.id : a.type === 'EXPENSE' ? -1 : 1))
+      .map(pubCategory)
   },
   async create({ name, type }) {
     await wait()
     const uid = currentUserId()
-    if (!name || name.length > 30) throw new ApiError(422, 'name: 1~30자여야 합니다.')
-    if (!['INCOME', 'EXPENSE'].includes(type)) throw new ApiError(422, 'type: INCOME 또는 EXPENSE여야 합니다.')
-    const cat = {
-      id: db.nextId.category++,
-      user_id: uid,
-      name,
-      type,
-      created_at: new Date().toISOString(),
+    if (!name || name.length > 30) throw invalid('name')
+    if (!['INCOME', 'EXPENSE'].includes(type)) throw invalid('type')
+    // 같은 유형에 같은 이름(기본 카테고리 포함)이 있으면 409
+    if (db.categories.some((c) => c.type === type && c.name === name && (c.user_id === null || c.user_id === uid))) {
+      throw new ApiError(409, '이미 존재하는 카테고리입니다.')
     }
+    const cat = { id: db.nextId.category++, user_id: uid, name, type }
     db.categories.push(cat)
-    return cat
+    return pubCategory(cat)
   },
 }
 
@@ -171,12 +188,12 @@ export const mockCategories = {
 function validateTransaction(uid, body, partial = false) {
   const { type, amount_krw, occurred_on, category_id } = body
   if (!partial || type !== undefined) {
-    if (!['INCOME', 'EXPENSE'].includes(type)) throw new ApiError(422, 'type: INCOME 또는 EXPENSE여야 합니다.')
+    if (!['INCOME', 'EXPENSE'].includes(type)) throw invalid('type')
   }
   if (!partial || amount_krw !== undefined) checkAmount(amount_krw)
-  if (!partial || occurred_on !== undefined) checkDate(occurred_on)
+  if (!partial || occurred_on !== undefined) checkDate(occurred_on, 'occurred_on')
   if (!partial || category_id !== undefined) {
-    if (!visibleCategory(uid, category_id)) throw new ApiError(422, 'category_id: 사용할 수 없는 카테고리입니다.')
+    if (!visibleCategory(uid, category_id)) throw new ApiError(422, '사용할 수 없는 카테고리입니다.')
   }
 }
 
@@ -188,14 +205,14 @@ export const mockTransactions = {
     return db.transactions
       .filter((t) => t.user_id === uid && t.occurred_on.startsWith(month))
       .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on) || b.id - a.id)
-      .map(strip)
+      .map(pubItem)
   },
   async create(body) {
     await wait()
     const uid = currentUserId()
     validateTransaction(uid, body)
     if (visibleCategory(uid, body.category_id).type !== body.type) {
-      throw new ApiError(422, 'category_id: 거래 유형과 카테고리 유형이 일치해야 합니다.')
+      throw new ApiError(422, '거래 유형과 카테고리 유형이 일치해야 합니다.')
     }
     const now = new Date().toISOString()
     const tx = {
@@ -211,7 +228,7 @@ export const mockTransactions = {
       updated_at: now,
     }
     db.transactions.push(tx)
-    return strip(tx)
+    return pubItem(tx)
   },
   async update(id, body) {
     await wait()
@@ -221,10 +238,10 @@ export const mockTransactions = {
     validateTransaction(uid, body, true)
     const next = { ...tx, ...body }
     if (visibleCategory(uid, next.category_id).type !== next.type) {
-      throw new ApiError(422, 'category_id: 거래 유형과 카테고리 유형이 일치해야 합니다.')
+      throw new ApiError(422, '거래 유형과 카테고리 유형이 일치해야 합니다.')
     }
     Object.assign(tx, next, { merchant: next.merchant || null, memo: next.memo || null, updated_at: new Date().toISOString() })
-    return strip(tx)
+    return pubItem(tx)
   },
   async remove(id) {
     await wait()
@@ -241,19 +258,19 @@ export const mockSubscriptions = {
   async list() {
     await wait()
     const uid = currentUserId()
-    return db.subscriptions.filter((s) => s.user_id === uid).sort((a, b) => b.id - a.id).map(strip)
+    return db.subscriptions.filter((s) => s.user_id === uid).sort((a, b) => b.id - a.id).map(pubItem)
   },
   async create(body) {
     await wait()
     const uid = currentUserId()
-    if (!body.name || body.name.length > 120) throw new ApiError(422, 'name: 1~120자여야 합니다.')
+    if (!body.name || body.name.length > 120) throw invalid('name')
     checkAmount(body.amount_krw)
     if (!['WEEKLY', 'MONTHLY', 'YEARLY'].includes(body.billing_cycle)) {
-      throw new ApiError(422, 'billing_cycle: WEEKLY, MONTHLY, YEARLY 중 하나여야 합니다.')
+      throw invalid('billing_cycle')
     }
-    checkDate(body.billing_anchor_date)
+    checkDate(body.billing_anchor_date, 'billing_anchor_date')
     const cat = visibleCategory(uid, body.category_id)
-    if (!cat || cat.type !== 'EXPENSE') throw new ApiError(422, 'category_id: 지출 카테고리여야 합니다.')
+    if (!cat || cat.type !== 'EXPENSE') throw new ApiError(422, 'EXPENSE 유형의 카테고리만 사용할 수 있습니다.')
     const sub = {
       id: db.nextId.subscription++,
       user_id: uid,
@@ -266,7 +283,7 @@ export const mockSubscriptions = {
       created_at: new Date().toISOString(),
     }
     db.subscriptions.push(sub)
-    return strip(sub)
+    return pubItem(sub)
   },
   async remove(id) {
     await wait()

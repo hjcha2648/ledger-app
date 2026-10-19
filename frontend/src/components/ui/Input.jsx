@@ -1,21 +1,30 @@
 import { useId } from 'react'
+import Icon from './Icon'
 
 export default function Input({ label, error, className = '', id, ...props }) {
   const autoId = useId()
   const inputId = id ?? autoId
+  const errorId = `${inputId}-error`
   return (
     <div className={className}>
       {label && (
-        <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-gem-ink">
           {label}
         </label>
       )}
       <input
         id={inputId}
-        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 ${error ? 'border-red-500' : 'border-gray-300'}`}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={`field ${error ? 'field-error' : ''}`}
         {...props}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && (
+        <p id={errorId} className="mt-1.5 flex items-center gap-1 text-xs text-red-600">
+          <Icon name="alert" className="h-3.5 w-3.5 shrink-0" />
+          {error}
+        </p>
+      )}
     </div>
   )
 }

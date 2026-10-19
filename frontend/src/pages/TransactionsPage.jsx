@@ -5,8 +5,11 @@ import {
   listTransactions,
   updateTransaction,
 } from '../api/transactions'
+import PageHeader from '../components/layout/PageHeader'
 import MonthPicker from '../components/MonthPicker'
 import TransactionForm from '../components/TransactionForm'
+import DataTable, { RowActions, RowIconButton, Td, TableCard, Tr } from '../components/DataTable'
+import TypeBadge from '../components/TypeBadge'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
@@ -14,8 +17,18 @@ import ErrorMessage from '../components/ui/ErrorMessage'
 import Modal from '../components/ui/Modal'
 import Spinner from '../components/ui/Spinner'
 import useCategories from '../hooks/useCategories'
-import { TYPE_LABEL, formatDate, formatKRW, formatSignedKRW, typeColorClass } from '../utils/format'
+import { formatDate, formatKRW, formatSignedKRW, typeColorClass } from '../utils/format'
 import { currentMonth } from '../utils/month'
+
+const COLUMNS = [
+  { label: '날짜' },
+  { label: '유형' },
+  { label: '카테고리' },
+  { label: '사용처' },
+  { label: '메모' },
+  { label: '금액', align: 'right' },
+  { label: '작업', srOnly: true },
+]
 
 export default function TransactionsPage() {
   const [month, setMonth] = useState(currentMonth)
@@ -82,9 +95,9 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">거래 내역</h1>
+        <PageHeader icon="transactions" title="거래 내역" subtitle="수입과 지출을 기록하고 관리해요" />
         <div className="flex items-center gap-3">
           <MonthPicker month={month} onChange={changeMonth} />
           <Button onClick={() => setEditing({})} disabled={cats.loading || Boolean(cats.error)}>
@@ -93,22 +106,25 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-1 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm">
-        <span>
-          수입 <strong className="text-green-600">{formatKRW(totals.income)}</strong>
+      <div className="flex flex-wrap gap-2">
+        <span className="chip">
+          <span className="h-2 w-2 rounded-full bg-income" />
+          수입 <strong className="num-strong text-income-ink">{formatKRW(totals.income)}</strong>
         </span>
-        <span>
-          지출 <strong className="text-red-600">{formatKRW(totals.expense)}</strong>
+        <span className="chip">
+          <span className="h-2 w-2 rounded-full bg-expense" />
+          지출 <strong className="num-strong text-expense-ink">{formatKRW(totals.expense)}</strong>
         </span>
-        <span>
-          잔액 <strong>{formatKRW(totals.income - totals.expense)}</strong>
+        <span className="chip">
+          <span className="h-2 w-2 rounded-full bg-gem-ink" />
+          잔액 <strong className="num-strong">{formatKRW(totals.income - totals.expense)}</strong>
         </span>
       </div>
 
       <ErrorMessage message={cats.error} onRetry={cats.reload} />
       <ErrorMessage message={actionError} />
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+      <TableCard>
         {loading ? (
           <Spinner />
         ) : error ? (
@@ -118,43 +134,30 @@ export default function TransactionsPage() {
         ) : transactions.length === 0 ? (
           <EmptyState message="이 달에 등록된 거래가 없습니다." />
         ) : (
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
-              <tr>
-                <th className="px-4 py-2 font-medium">날짜</th>
-                <th className="px-4 py-2 font-medium">유형</th>
-                <th className="px-4 py-2 font-medium">카테고리</th>
-                <th className="px-4 py-2 font-medium">사용처</th>
-                <th className="px-4 py-2 font-medium">메모</th>
-                <th className="px-4 py-2 text-right font-medium">금액</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {transactions.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-2.5 text-gray-600">{formatDate(t.occurred_on)}</td>
-                  <td className="px-4 py-2.5">{TYPE_LABEL[t.type]}</td>
-                  <td className="px-4 py-2.5">{categoryName.get(t.category_id) ?? '-'}</td>
-                  <td className="px-4 py-2.5 text-gray-600">{t.merchant || '-'}</td>
-                  <td className="max-w-48 truncate px-4 py-2.5 text-gray-600">{t.memo || '-'}</td>
-                  <td className={`whitespace-nowrap px-4 py-2.5 text-right font-semibold ${typeColorClass(t.type)}`}>
-                    {formatSignedKRW(t.type, t.amount_krw)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                    <Button variant="ghost" className="!px-2 !py-1" onClick={() => setEditing(t)}>
-                      수정
-                    </Button>
-                    <Button variant="ghost" className="!px-2 !py-1" onClick={() => setDeleting(t)}>
-                      삭제
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable columns={COLUMNS}>
+            {transactions.map((t) => (
+              <Tr key={t.id}>
+                <Td className="whitespace-nowrap text-ink-muted">{formatDate(t.occurred_on)}</Td>
+                <Td>
+                  <TypeBadge type={t.type} />
+                </Td>
+                <Td>{t.category_name ?? categoryName.get(t.category_id) ?? '-'}</Td>
+                <Td className="text-ink-muted">{t.merchant || '-'}</Td>
+                <Td className="max-w-48 truncate text-ink-muted">{t.memo || '-'}</Td>
+                <Td align="right" className={`num-strong whitespace-nowrap ${typeColorClass(t.type)}`}>
+                  {formatSignedKRW(t.type, t.amount_krw)}
+                </Td>
+                <Td align="right" className="whitespace-nowrap">
+                  <RowActions>
+                    <RowIconButton icon="edit" label="거래 수정" onClick={() => setEditing(t)} />
+                    <RowIconButton icon="trash" label="거래 삭제" tone="danger" onClick={() => setDeleting(t)} />
+                  </RowActions>
+                </Td>
+              </Tr>
+            ))}
+          </DataTable>
         )}
-      </div>
+      </TableCard>
 
       {editing && (
         <Modal title={editing.id ? '거래 수정' : '거래 등록'} onClose={() => setEditing(null)}>

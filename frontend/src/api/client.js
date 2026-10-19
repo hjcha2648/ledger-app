@@ -36,25 +36,31 @@ export function setUnauthorizedHandler(fn) {
 }
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  // fields: 422 형식 검증 오류의 필드별 메시지 { 서버필드명: 메시지 } (없으면 null)
+  constructor(status, message, fields = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fields = fields
   }
 }
 
-// FastAPI 오류 {"detail": "문자열"} 또는 422의 [{loc, msg}, ...] 를 문자열로 변환
+const INVALID_INPUT = '입력값을 확인해 주세요.'
+
+// API 계약(docs/api-contract.md): detail 은 문자열 또는 배열이다.
+// - 문자열: 그대로 표시
+// - 배열(422 형식 검증): loc 의 마지막 값(필드명)을 모아 fields 로 돌려주고, 메시지는 "입력값을 확인해 주세요."
 function parseDetail(detail) {
-  if (typeof detail === 'string') return detail
+  if (typeof detail === 'string') return { message: detail, fields: null }
   if (Array.isArray(detail)) {
-    return detail
-      .map((d) => {
-        const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : null
-        return field ? `${field}: ${d.msg}` : d.msg
-      })
-      .join('\n')
+    const fields = {}
+    detail.forEach((d) => {
+      const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : null
+      if (typeof field === 'string') fields[field] = INVALID_INPUT
+    })
+    return { message: INVALID_INPUT, fields: Object.keys(fields).length ? fields : null }
   }
-  return '요청을 처리하지 못했습니다.'
+  return { message: '요청을 처리하지 못했습니다.', fields: null }
 }
 
 function buildQuery(params) {
@@ -96,7 +102,8 @@ export async function request(method, path, { params, body } = {}) {
   if (!res.ok) {
     // 토큰이 있는 상태의 401만 세션 만료로 처리 (로그인 실패 401과 구분)
     if (res.status === 401 && token && unauthorizedHandler) unauthorizedHandler()
-    throw new ApiError(res.status, parseDetail(data?.detail))
+    const { message, fields } = parseDetail(data?.detail)
+    throw new ApiError(res.status, message, fields)
   }
   return data
 }

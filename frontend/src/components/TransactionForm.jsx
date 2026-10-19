@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { today } from '../utils/month'
+import { fieldErrorsFrom } from '../utils/formErrors'
 import { TYPE_LABEL } from '../utils/format'
 import Button from './ui/Button'
 import ErrorMessage from './ui/ErrorMessage'
@@ -72,6 +73,7 @@ export default function TransactionForm({ initial, categories, onSubmit, onAddCa
         memo: form.memo.trim() || null,
       })
     } catch (err) {
+      setFieldErrors(fieldErrorsFrom(err, { amount_krw: 'amount' }))
       setError(err.message)
       setSaving(false)
     }
@@ -80,18 +82,18 @@ export default function TransactionForm({ initial, categories, onSubmit, onAddCa
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
       <div>
-        <span className="mb-1 block text-sm font-medium text-gray-700">유형</span>
+        <span className="mb-1.5 block text-sm font-medium text-gem-ink">유형</span>
         <div className="grid grid-cols-2 gap-2">
           {['EXPENSE', 'INCOME'].map((t) => {
             const active = form.type === t
-            const activeClass = t === 'INCOME' ? 'border-green-600 bg-green-50 text-green-700' : 'border-red-600 bg-red-50 text-red-700'
+            const activeClass = t === 'INCOME' ? 'border-income bg-income/10 text-income-ink' : 'border-expense bg-expense/10 text-expense-ink'
             return (
               <button
                 key={t}
                 type="button"
                 aria-pressed={active}
                 onClick={() => changeType(t)}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium ${active ? activeClass : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-100'}`}
+                className={`focus-ring h-11 rounded-control border text-sm font-medium transition duration-150 active:scale-[0.98] ${active ? activeClass : 'border-slate-300 bg-white text-ink-muted hover:border-slate-400 hover:bg-slate-50'}`}
               >
                 {TYPE_LABEL[t]}
               </button>
@@ -137,7 +139,7 @@ export default function TransactionForm({ initial, categories, onSubmit, onAddCa
           <button
             type="button"
             onClick={() => setNewCategory('')}
-            className="mt-1 text-xs font-medium text-gray-600 underline hover:text-gray-900"
+            className="focus-ring mt-1.5 rounded text-xs font-medium text-accent-ink underline-offset-2 hover:underline"
           >
             + 새 {TYPE_LABEL[form.type]} 카테고리 추가
           </button>
@@ -156,7 +158,7 @@ export default function TransactionForm({ initial, categories, onSubmit, onAddCa
                 maxLength={30}
                 placeholder="카테고리 이름"
                 aria-label="새 카테고리 이름"
-                className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="field min-w-0 flex-1"
               />
               <Button variant="secondary" onClick={addCategory}>
                 추가
@@ -165,7 +167,7 @@ export default function TransactionForm({ initial, categories, onSubmit, onAddCa
                 취소
               </Button>
             </div>
-            {categoryError && <p className="mt-1 text-xs text-red-600">{categoryError}</p>}
+            {categoryError && <p className="mt-1.5 text-xs text-red-600">{categoryError}</p>}
           </div>
         )}
       </div>

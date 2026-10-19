@@ -4,6 +4,7 @@ import ProtectedRoute from './auth/ProtectedRoute'
 import PublicRoute from './auth/PublicRoute'
 import AppLayout from './components/layout/AppLayout'
 import DashboardPage from './pages/DashboardPage'
+import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import SubscriptionsPage from './pages/SubscriptionsPage'
@@ -20,12 +21,13 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
+              <Route path="/home" element={<HomePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
