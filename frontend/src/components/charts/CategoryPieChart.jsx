@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts'
+import { Pie, PieChart, ResponsiveContainer, Sector } from 'recharts'
 import { DONUT_COLORS, DONUT_ETC_COLOR } from '../../constants/chartColors'
 import useReducedMotion from '../../hooks/useReducedMotion'
 import { formatKRW } from '../../utils/format'
@@ -15,19 +15,6 @@ function foldSlices(items) {
   const head = items.slice(0, MAX_SLICES - 1)
   const rest = items.slice(MAX_SLICES - 1)
   return [...head, { category_id: 'etc', name: '기타', amount_krw: rest.reduce((s, c) => s + c.amount_krw, 0) }]
-}
-
-function SliceTooltip({ active, payload, total }) {
-  if (!active || !payload?.length) return null
-  const { name, amount_krw } = payload[0].payload
-  return (
-    <div className="rounded-xl border border-line bg-white px-3 py-2 text-xs shadow-pop">
-      <p className="font-semibold text-gem-ink">{name}</p>
-      <p className="num text-ink-muted">
-        {formatKRW(amount_krw)} · {((amount_krw / total) * 100).toFixed(1)}%
-      </p>
-    </div>
-  )
 }
 
 export default function CategoryPieChart({ data }) {
@@ -86,7 +73,6 @@ export default function CategoryPieChart({ data }) {
               onMouseEnter={(_, i) => setHoverId(slices[i].category_id)}
               onMouseLeave={() => setHoverId(null)}
             />
-            <Tooltip content={<SliceTooltip total={total} />} isAnimationActive={false} />
           </PieChart>
         </ResponsiveContainer>
 
