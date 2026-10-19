@@ -14,8 +14,11 @@
 | 역할 | 담당 | AI 참고 문서 |
 |---|---|---|
 | 프론트엔드 | C | [docs/ai-frontend.md](docs/ai-frontend.md) + [docs/api-contract.md](docs/api-contract.md) |
-| 인프라 | A | [docs/ai-infra.md](docs/ai-infra.md) |
-| 백엔드 | B | [PLAN.md](PLAN.md), [README.md](README.md) |
+| 인프라 | A | [docs/agent-infra.md](docs/agent-infra.md) + [docs/ai-infra.md](docs/ai-infra.md) + [PLAN-infra.md](PLAN-infra.md) + [docs/db-design.md](docs/db-design.md) |
+| 백엔드 | B | [PLAN-backend.md](PLAN-backend.md), [README.md](README.md), [docs/backend-summary.md](docs/backend-summary.md) |
+
+- 역할별 계획은 `PLAN-<역할>.md`, 역할별 AI 지침은 `docs/` 아래에 둔다.
+- `CLAUDE.md`는 **모든 팀원의 Claude Code가 자동으로 읽는 공용 파일**이므로 `@AGENTS.md` 한 줄만 둔다. 역할 전용 지침을 넣지 않는다.
 
 ## 반드시 지킬 것
 
