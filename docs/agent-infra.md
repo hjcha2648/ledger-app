@@ -53,11 +53,26 @@ AI에게 줄 첫 마디 예시: `AGENTS.md, docs/agent-infra.md, PLAN-infra.md, 
 - FastAPI는 Python venv + systemd로 실행한다. 컨테이너는 쓰지 않는다.
 - 로컬 개발 DB(WSL)와 EC2 DB는 별개이다. 지금 어느 쪽에서 작업 중인지 항상 확인한다.
 
-## 아직 정해지지 않은 값 — 가정하지 말고 물어본다
+## 확정된 값과 아직 정해지지 않은 값
 
-OS(Amazon Linux 2023 / Ubuntu 24.04), 리전, 인스턴스 유형, EBS 크기, 앱 포트, 서비스명, 프로젝트·환경 파일 경로, Elastic IP 사용 여부, DB·앱 계정 이름. `PLAN-infra.md` 2.2의 표에서 확정된 것만 쓴다. 비어 있으면 명령을 만들기 전에 사용자에게 값을 묻는다.
+값의 기준은 `PLAN-infra.md` 2.2의 결정 표 하나다. 표가 바뀌면 이 절도 함께 고친다.
 
-OS에 따라 패키지 관리자(`dnf` / `apt`)와 패키지 이름이 다르다. 사용자의 OS를 확인하기 전에는 명령을 하나로 단정하지 말고, 패키지 이름은 검색 명령(`dnf search`, `apt search`)으로 확인하게 한다.
+**확정 — 이 값으로 명령을 만든다**
+
+| 항목 | 값 |
+|---|---|
+| OS | Ubuntu 26.04 LTS (패키지 관리자 `apt`, 로컬 WSL·Python 3.14와 동일) |
+| 앱 포트 | 8000 |
+| 서비스명 | `ledger-api` |
+| 프로젝트 경로 | `/home/ubuntu/ledger-app` (실행 디렉터리 `backend/`, venv `.venv/`) |
+| 환경 파일 | `/etc/ledger/backend.env` (권한 600) |
+| DB·앱 계정 | `ledger_db`, `app_user` (`localhost`·`127.0.0.1` 두 계정) |
+
+**미정 — 가정하지 말고 명령을 만들기 전에 사용자에게 묻는다**
+
+리전(서울 `ap-northeast-2` 제안), 인스턴스 유형·EBS 크기(프리티어 대상·gp3 20~30GB 제안), Elastic IP 사용 여부, SSH 접속 방식(팀 고정 IP / SSM), CloudFront→EC2 원본 프로토콜.
+
+패키지 이름이 확실하지 않으면 `apt search`로 확인하게 한다.
 
 ## 명령 실행 원칙
 
@@ -94,9 +109,9 @@ OS에 따라 패키지 관리자(`dnf` / `apt`)와 패키지 이름이 다르다
 - 부팅 시 자동 시작, `bind-address=127.0.0.1`
 - 한글 사용이 가능한 문자셋 확인
 - 전용 DB 하나, 앱 전용 계정에는 그 DB 권한만 부여
-- 앱은 `127.0.0.1:3306`으로 접속한다(PRD 예시: `mysql+pymysql://app_user:<password>@127.0.0.1:3306/ledger_db`, 이름은 확정 후 사용)
+- 앱은 `127.0.0.1:3306`으로 접속한다(`mysql+pymysql://app_user:<password>@127.0.0.1:3306/ledger_db?charset=utf8mb4`)
 
-### systemd (값은 확정 후)
+### systemd (서비스명 `ledger-api`, 유닛 예시는 `docs/ai-infra.md`)
 - 일반 사용자로 실행, `WorkingDirectory`는 백엔드 폴더
 - `EnvironmentFile`로 환경 파일 지정
 - MariaDB 이후에 시작(`After=`/`Wants=`), `Restart=always`, `enable`로 자동 시작
@@ -179,7 +194,7 @@ curl -i https://<CloudFront 도메인>/api/health  # 외부 경로로 확인
 - **완료 확인**: SSH 접속 성공, 보안 그룹 규칙 점검 결과
 
 ### Day 2 — MariaDB와 API 서버
-- 사용자의 OS에 맞는 설치 명령을 안내한다(OS를 모르면 먼저 묻는다).
+- Ubuntu 26.04 기준 `apt` 설치 명령을 안내한다.
 - MariaDB: 자동 시작, 로컬 바인딩, 문자셋, 전용 DB, 최소 권한 앱 계정, 접속 테스트
 - 앱 계정 비밀번호는 쉘 기록에 남지 않게 입력하도록 안내한다.
 - venv·의존성·환경 파일(권한 600)·systemd 서비스를 단계별로 만든다.
