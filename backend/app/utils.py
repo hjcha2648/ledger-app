@@ -32,5 +32,5 @@ def get_usable_category(db: Session, user_id: int, category_id: int, required_ty
     if category is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="사용할 수 없는 카테고리입니다.")
     if category.type != required_type:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="거래 유형과 카테고리 유형이 일치하지 않습니다.")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"{required_type} 유형의 카테고리만 사용할 수 있습니다.")
     return category
