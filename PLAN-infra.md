@@ -41,15 +41,19 @@
 
 | 항목 | 제안 | 확정 시점 | 결정 |
 |---|---|---|---|
-| 리전 | 서울(`ap-northeast-2`) | Day 1 | 미정 |
+| 리전 | 서울(`ap-northeast-2`) | Day 1 | **`ap-northeast-2`** (EC2·S3·Bedrock. ACM 인증서만 CloudFront 규칙상 `us-east-1`) |
 | OS | Amazon Linux 2023 또는 Ubuntu (패키지 관리자 `dnf` / `apt`가 달라진다) | Day 1 | **Ubuntu 26.04 LTS** (`apt`). `docs/ai-infra.md`: 로컬 WSL(26.04, Python 3.14)과 버전 일치. `requirements.txt`가 Python 3.14.4에서 설치되는 것을 로컬에서 확인 |
-| 인스턴스 유형·EBS 크기 | 계정의 프리티어·예산 확인 후 결정 | Day 1 | 프리티어 대상 유형(콘솔의 "Free tier eligible" 표시, 메모리 1GB면 스왑 추가). EBS는 gp3 20~30GB 제안 |
-| SSH 접속 방식 | 팀 고정 IP만 허용(22) 또는 SSM Session Manager(22 닫음) | Day 1 | `docs/ai-infra.md`는 "내 IP만". 팀원이 함께 접속하면 IP 추가 또는 SSM — **확인 필요** |
+| 인스턴스 유형·EBS 크기 | 계정의 프리티어·예산 확인 후 결정 | Day 1 | **`t3.small`**(메모리 1.9GB → 빌드용 스왑 `/swapfile` 1GB, 재부팅 후 `sudo swapon /swapfile`), 루트 볼륨 약 19GB(10/20 실측) |
+| SSH 접속 방식 | 팀 고정 IP만 허용(22) 또는 SSM Session Manager(22 닫음) | Day 1 | `docs/ai-infra.md`는 "내 IP만". ⚠️ **10/20 실측: 22번에 `0.0.0.0/0`과 `175.209.15.230/32`가 함께 열려 있음 → `0.0.0.0/0` 제거 필요**(팀원 IP 확인 후) |
 | 앱 포트 | 80번은 일반 사용자 권한으로 못 쓰므로 8000 같은 비특권 포트 | Day 1 | **8000** (`docs/ai-infra.md`) |
 | 서비스명 | 예: `ledger-api` | Day 1 | **`ledger-api`** (`docs/ai-infra.md`) |
 | 프로젝트·환경 파일 경로 | 홈 디렉터리 하위의 프로젝트 폴더, 환경 파일은 권한 600 | Day 1 | 프로젝트 `/home/ubuntu/vibe-lab/ledger-app`(실행 디렉터리 `backend/`, venv `.venv/`), 환경 파일 `/etc/ledger/backend.env` 권한 600 — 시연 EC2 `i-02195e4dee3318216`에 이 경로로 배치함 |
-| 고정 주소 | Elastic IP를 붙여 재시작 후에도 CloudFront 원본 주소가 바뀌지 않게 함. 과금 여부 확인 | Day 1 | 미정 |
-| 원본 프로토콜 | CloudFront→EC2는 HTTP(도메인·인증서가 없으면 HTTPS 불가). 한계를 README에 명시 | Day 2 | 미정 |
+| 고정 주소 | Elastic IP를 붙여 재시작 후에도 CloudFront 원본 주소가 바뀌지 않게 함. 과금 여부 확인 | Day 1 | 미정. 현재 원본은 퍼블릭 DNS `ec2-43-201-29-20.ap-northeast-2.compute.amazonaws.com` → **인스턴스 중지·시작 시 바뀌므로 원본 수정 필요**. 계정에 연결 안 된 EIP 2개(`43.200.29.190`, `54.116.209.116`) 있음 — 소유 확인 필요 |
+| 원본 프로토콜 | CloudFront→EC2는 HTTP(도메인·인증서가 없으면 HTTPS 불가). 한계를 README에 명시 | Day 2 | **HTTP only, 포트 8000, 응답 제한 시간 60초**(챗봇 응답 대비, PLAN.md A5) |
+| S3 버킷 | 비공개 + OAC | Day 3 | **`ledger-app-s3`** (`ap-northeast-2`, 퍼블릭 차단, 버킷 정책은 CloudFront 배포 ARN 조건) |
+| CloudFront | `/*` → S3, `/api/*` → EC2 | Day 3 | 배포 **`E2Q0XEE8TA0BOI`** (`d2q1okho7uqgh2.cloudfront.net`), 대체 도메인 **`ledger.lsj.mzsec.cloud`**(Route 53 `lsj.mzsec.cloud` 영역 A 별칭, ACM `us-east-1` 인증서), 기본 동작에 함수 `spa-rewrite` |
+| IAM 역할 | EC2 인스턴스 역할(액세스 키 저장 안 함) | Day 3 | **`ledger-ec2-role`**, 인라인 정책 `ledger-bedrock-invoke`(`bedrock:InvokeModel`만). S3 업로드·무효화 권한은 아직 없음 → 현재는 개인 `aws login` 자격 증명으로 업로드 |
+| VPC | 기본 VPC(2.1) | Day 1 | 10/20 실측: EC2는 **기본 VPC가 아닌** `vpc-00eb76e65446388ec`, 보안 그룹 `sg-08b29fea96149a5a4`. 2.1과 다름 — 동작에는 문제없음 |
 | DB 이름·앱 계정 이름 | PRD 예시 기준 `ledger_db`, `app_user` | Day 1 | **`ledger_db`, `app_user`** (`localhost`·`127.0.0.1` 두 계정, `docs/ai-infra.md`·`docs/db-design.md`) |
 
 결정하면 이 표를 갱신하고 B(환경 변수 키·실행 모듈)와 C(CloudFront 주소)에게 알린다.
@@ -157,20 +161,20 @@
 **Day 종료 기준**: CloudFront HTTPS 주소에서 프론트가 열리고 `/api/*`가 EC2의 FastAPI에 도달한다.
 
 #### T12 — S3 버킷
-- [ ] 버킷 생성(공개 차단 유지), CloudFront OAC로 접근 허용 (OAC 연결 후 버킷 정책 반영)
+- [x] 버킷 생성(공개 차단 유지), CloudFront OAC로 접근 허용 (OAC 연결 후 버킷 정책 반영) — S3 직접 접근 403 확인(10/20)
 
 #### T13 — CloudFront 배포
-- [ ] 기본 동작 `/*` → S3, 기본 객체 `index.html`
-- [ ] 원본 추가: EC2(퍼블릭 DNS 이름, HTTP, 앱 포트)
-- [ ] 동작 추가 `/api/*` → EC2 원본 (3.2)
-- [ ] CloudFront 주소로 `/api/health`, 로그인 요청 확인
+- [x] 기본 동작 `/*` → S3, 기본 객체 `index.html`
+- [x] 원본 추가: EC2(퍼블릭 DNS 이름, HTTP, 앱 포트)
+- [x] 동작 추가 `/api/*` → EC2 원본 (3.2) — 메서드 7개, `CachingDisabled`, `AllViewerExceptHostHeader`
+- [x] CloudFront 주소로 `/api/health`, 로그인 요청 확인
 
 #### T14 — SPA 새로고침 처리
-- [ ] 기본 동작에만 적용되는 방법 사용 (3.3)
-- [ ] 배포 전체 사용자 지정 오류 응답은 설정하지 않음
+- [x] 기본 동작에만 적용되는 방법 사용 (3.3) — 함수 `spa-rewrite`, `/dashboard` 200 HTML
+- [x] 배포 전체 사용자 지정 오류 응답은 설정하지 않음 — `/api/nope` 404 JSON
 
 #### T15 — 통합 확인·전달
-- [ ] C의 임시 빌드를 업로드해 CloudFront 주소에서 화면 표시 확인
+- [x] C의 임시 빌드를 업로드해 CloudFront 주소에서 화면 표시 확인 (10/20 main 빌드)
 - [ ] C에게 CloudFront 주소와 업로드 방법 전달
 
 #### 3.2 `/api/*` 동작 설정
@@ -208,6 +212,12 @@
 #### T20 — 문서·정리 (오후)
 - [ ] README의 인프라 절 정리(9장)
 - [ ] 시연 후 리소스 정리 계획 확인(EC2, Elastic IP, CloudFront, S3 비용)
+- [ ] 챗봇(Bedrock) 정리 계획 (PLAN.md A7) — 시연 후 팀 확인을 받고 순서대로:
+  1. 환경 파일에서 `CHAT_ENABLED=false`로 바꾸고 재시작 (Bedrock 호출 중단, `/api/chat`은 503)
+  2. `ledger-ec2-role`에서 인라인 정책 `ledger-bedrock-invoke` 제거. 역할 자체는 EC2 정리 때 함께 정리
+  3. 모델 액세스는 계정 전체 설정이므로 다른 프로젝트가 쓰는지 확인한 뒤에만 해제
+  4. Cost Explorer에서 Bedrock 비용이 더 이상 늘지 않는지 확인
+- [ ] EC2 셸의 개인 `aws login` 자격 증명 정리(`aws logout`), 소유 불명 EIP 2개 확인(2.2 고정 주소)
 
 ## 4. 핸드오프
 
@@ -232,19 +242,23 @@
 
 ## 5. 배포 절차 (수동)
 
-### 프론트엔드
-1. C의 저장소에서 `npm install`, `npm run build`
-2. `dist/` 내용을 S3 버킷에 업로드
-3. CloudFront 캐시 무효화(필요한 경로만, 예: `/index.html`)
-4. CloudFront HTTPS 주소에서 SPA 라우팅과 API 연동 확인
+모두 EC2(`/home/ubuntu/vibe-lab/ledger-app`)에서 한다. 먼저 `git fetch origin` → `git diff --stat HEAD origin/main`으로 `backend/`·`frontend/` 중 무엇이 바뀌었는지 보고 → `git merge origin/main`(또는 `main`에서 `git pull --ff-only`).
 
-### 백엔드
-1. EC2에서 프로젝트 폴더로 이동해 `git pull`
-2. venv를 활성화하고 의존성 설치
-3. MariaDB 서비스 실행과 환경 변수 점검, 최초 1회 테이블 초기화
-4. 서비스 재시작, 상태 확인
-5. `journalctl`로 최근 로그 확인
-6. `/api/health`와 실제 인증·거래 요청으로 연결 확인
+### 백엔드 (`backend/`가 바뀌었을 때)
+1. `cd backend && source ../.venv/bin/activate`
+2. `requirements.txt`가 바뀌었으면 `pip install -r requirements.txt` — **재시작 전에** 해야 한다(새 import가 있으면 서비스가 뜨지 않음)
+3. `python -c "from app.main import app"`로 불러오기 확인
+4. 모델(테이블 구조)이 바뀌었으면 재시작 전에 B에게 `ALTER` 방법 확인(`init_db`는 기존 테이블을 바꾸지 않음)
+5. `sudo systemctl restart ledger-api && sleep 3 && curl -i http://127.0.0.1:8000/api/health` (바로 curl하면 기동 전이라 연결 실패)
+6. `journalctl -u ledger-api -n 30 --no-pager`로 오류 확인
+
+### 프론트엔드 (`frontend/`가 바뀌었을 때)
+1. `sudo swapon /swapfile`(재부팅 후), `cd frontend`, `package-lock.json`이 바뀌었으면 `npm ci`
+2. `npm run build` → `grep -r "demo1234" dist` 결과 없음 확인(목 데이터 미포함)
+3. `aws s3 sync dist/assets s3://ledger-app-s3/assets --cache-control "public,max-age=31536000,immutable"`
+4. `aws s3 sync dist/ s3://ledger-app-s3/ --exclude "assets/*" --cache-control "no-cache"`
+5. 필요하면 `aws cloudfront create-invalidation --distribution-id E2Q0XEE8TA0BOI --paths "/index.html"` (`index.html`이 `no-cache`라 보통 불필요)
+6. `curl -s https://ledger.lsj.mzsec.cloud/ | grep -o 'assets/index-[^"]*'`가 `dist/assets` 파일명과 같은지 확인
 
 ## 6. systemd 서비스 기준
 
@@ -264,18 +278,22 @@
 
 PRD 10장 수동 테스트 중 인프라와 직결된 항목이다. 실행한 결과는 직접 기록한다.
 
-- [ ] CloudFront HTTPS 주소로 프론트가 열린다
-- [ ] `/dashboard` 같은 경로를 새로고침해도 화면이 뜬다
-- [ ] 없는 API 경로가 `index.html`이 아니라 JSON 오류(`{"detail": ...}`)로 응답한다
-- [ ] CloudFront 주소로 API 요청이 EC2의 FastAPI까지 도달한다
-- [ ] `Authorization` 헤더가 FastAPI에 도달해 보호 API가 동작한다(401이 아닌 정상 응답)
-- [ ] PATCH·DELETE 요청이 CloudFront를 통과한다
-- [ ] 외부에서 3306에 접속할 수 없다
-- [ ] 외부에서 앱 포트로 직접 접속하는 것이 차단된다(prefix list 적용 시)
+10/20 확인 결과는 `[x]` 뒤에 적었다. 확인 주소: `https://ledger.lsj.mzsec.cloud`
+
+- [x] CloudFront HTTPS 주소로 프론트가 열린다 — `/` 200 HTML
+- [x] `/dashboard` 같은 경로를 새로고침해도 화면이 뜬다 — 200 HTML
+- [x] 없는 API 경로가 `index.html`이 아니라 JSON 오류(`{"detail": ...}`)로 응답한다 — `/api/nope` 404 JSON
+- [x] CloudFront 주소로 API 요청이 EC2의 FastAPI까지 도달한다 — `/api/health` 200
+- [x] `Authorization` 헤더가 FastAPI에 도달해 보호 API가 동작한다(401이 아닌 정상 응답) — `/api/categories` 200
+- [x] PATCH·DELETE 요청이 CloudFront를 통과한다 — 없는 ID로 FastAPI의 404 JSON 수신
+- [x] 외부에서 3306에 접속할 수 없다 — 바인딩 `127.0.0.1:3306`, 외부 연결 거부, 인바운드 규칙 없음
+- [x] 외부에서 앱 포트로 직접 접속하는 것이 차단된다(prefix list 적용 시) — 8000은 `pl-22a6434b`만, 직접 접속 실패
+- [ ] SSH 22가 팀 IP로만 열려 있다 — ⚠️ `0.0.0.0/0` 포함(2.2)
+- [x] 챗봇: CloudFront 경유 `POST /api/chat` 200 (5.3초, PLAN.md A5 타임아웃 60초)
 - [ ] EC2 재시작 후 MariaDB와 API 서버가 자동으로 올라온다
 - [ ] 재시작 후에도 EC2 MariaDB의 데이터가 남아 있다
 - [ ] `mariadb-dump` 백업이 만들어지고 테스트 DB에 복원된다
-- [ ] 환경 파일 권한이 600이고 Git에 올라가 있지 않다
+- [x] 환경 파일 권한이 600이고 Git에 올라가 있지 않다 — `/etc/ledger/backend.env` 600, `git ls-files`에 없음
 
 ## 8. 장애 대응과 리스크
 
@@ -288,6 +306,9 @@ PRD 10장 수동 테스트 중 인프라와 직결된 항목이다. 실행한 �
 | PATCH·DELETE만 실패 | `/api/*` 동작의 허용 메서드 |
 | 서비스가 시작되지 않음 | `journalctl` 로그, 환경 파일 경로·권한·값 형식, 가상환경 경로, MariaDB 실행 여부 |
 | DB 연결 실패 | 환경 파일의 호스트가 `127.0.0.1`인지, 앱 계정·DB 이름, MariaDB 서비스 상태 |
+| 챗봇 `/api/chat` 503 | 환경 파일 `CHAT_ENABLED=true`, 역할 정책 `ledger-bedrock-invoke`, `journalctl`의 Bedrock 오류(권한·모델 ID) |
+| 챗봇만 504 | CloudFront EC2 원본 응답 제한 시간(60초) |
+| 커스텀 도메인 인증서 경고 | CloudFront 대체 도메인·ACM(`us-east-1`) 인증서가 함께 저장됐는지, 배포 완료 여부 |
 | 코드를 고쳤는데 반영되지 않음 | `git pull` 여부, 서비스 재시작 여부, CloudFront 캐시 무효화 여부 |
 | 재부팅 후 서버가 꺼져 있음 | 서비스·MariaDB의 자동 시작 설정 |
 | EC2 장애 | API와 DB가 함께 멈춘다. 백업과 복원 절차로 복구 |
