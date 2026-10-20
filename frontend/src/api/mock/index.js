@@ -403,6 +403,35 @@ export const mockChat = {
   },
 }
 
+// ---------- receipts (POST /api/receipts/analyze 목: 파일 내용은 읽지 않고 샘플 초안을 돌려준다. 저장하지 않음) ----------
+export const mockReceipts = {
+  async analyze(file) {
+    await wait(1500)
+    currentUserId()
+    if (!(file instanceof File)) throw new ApiError(422, '입력값을 확인해 주세요.')
+    if (file.size > 5 * 1024 * 1024) throw new ApiError(413, '파일은 5MB 이하만 올릴 수 있습니다.')
+    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)) {
+      throw new ApiError(422, 'JPEG·PNG·WEBP 이미지 또는 PDF 파일만 올릴 수 있습니다.')
+    }
+    const catId = (name) => db.categories.find((c) => c.user_id === null && c.name === name)?.id ?? null
+    const day = (back) => {
+      const d = new Date()
+      d.setDate(d.getDate() - back)
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    }
+    const pick = (name, extra) => ({ type: 'EXPENSE', category_id: catId(name), category_name: name, ...extra })
+    const items = file.type === 'application/pdf'
+      ? [
+          pick('식비', { amount_krw: 20300, occurred_on: day(2), merchant: '스타벅스 강남역점', memo: '아메리카노 외 2건' }),
+          pick('교통', { amount_krw: 1500, occurred_on: day(3), merchant: '서울교통공사', memo: null }),
+          { type: 'EXPENSE', amount_krw: 48900, occurred_on: null, merchant: '온라인 쇼핑몰', memo: null, category_id: null, category_name: null },
+        ]
+      : [pick('식비', { amount_krw: 20300, occurred_on: day(1), merchant: '스타벅스 강남역점', memo: '아메리카노 외 2건' })]
+    const warnings = file.type === 'application/pdf' ? ['10/11 쿠팡 결제취소(-38,900원) 건은 제외했습니다.'] : []
+    return { items, warnings }
+  },
+}
+
 // ---------- reports (명세서 메일 목: 실제 발송 없음. 인증 요청 → pending → 다음 상태 조회 때 verified 로 가정) ----------
 const emailState = {} // userId → 'unverified' | 'pending' | 'verified'
 const lastMailAt = {} // userId → 마지막 발송 시각(ms), 5분 제한

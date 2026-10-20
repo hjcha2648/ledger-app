@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import Icon from './Icon'
 
 // 모바일: 하단 시트(아래에서 올라옴), 데스크톱: 중앙 카드(fade + scale). 배경은 반투명 + 블러.
-export default function Modal({ title, onClose, children }) {
+export default function Modal({ title, onClose, wide = false, children }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -26,7 +26,7 @@ export default function Modal({ title, onClose, children }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="modal-panel max-h-[92vh] w-full overflow-y-auto rounded-t-sheet border border-line bg-white p-6 shadow-pop sm:max-w-md sm:rounded-sheet"
+        className={`modal-panel max-h-[92vh] w-full overflow-y-auto rounded-t-sheet border border-line bg-white p-6 shadow-pop ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'} sm:rounded-sheet`}
       >
         <div aria-hidden="true" className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200 sm:hidden" />
         <div className="mb-5 flex items-center justify-between gap-4">

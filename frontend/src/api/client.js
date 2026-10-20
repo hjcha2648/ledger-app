@@ -77,14 +77,16 @@ export async function request(method, path, { params, body } = {}) {
   const headers = {}
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // FormData(파일 업로드)는 Content-Type 을 직접 넣지 않는다 — 브라우저가 boundary 를 포함해 설정한다
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
 
   let res
   try {
     res = await fetch(`/api${path}${buildQuery(params)}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
     throw new ApiError(0, '서버에 연결할 수 없습니다.')
@@ -111,6 +113,7 @@ export async function request(method, path, { params, body } = {}) {
 export const api = {
   get: (path, params) => request('GET', path, { params }),
   post: (path, body) => request('POST', path, { body }),
+  upload: (path, formData) => request('POST', path, { body: formData }),
   patch: (path, body) => request('PATCH', path, { body }),
   delete: (path) => request('DELETE', path),
 }
