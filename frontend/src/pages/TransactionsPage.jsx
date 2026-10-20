@@ -9,12 +9,14 @@ import {
 import PageHeader from '../components/layout/PageHeader'
 import DayDetail from '../components/DayDetail'
 import MonthPicker from '../components/MonthPicker'
+import ReceiptImportDialog from '../components/ReceiptImportDialog'
 import TransactionCalendar from '../components/TransactionCalendar'
 import TransactionForm from '../components/TransactionForm'
 import DataTable, { RowActions, RowIconButton, Td, TableCard, Tr } from '../components/DataTable'
 import TypeBadge from '../components/TypeBadge'
 import ViewToggle from '../components/ViewToggle'
 import Button from '../components/ui/Button'
+import Icon from '../components/ui/Icon'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
 import ErrorMessage from '../components/ui/ErrorMessage'
@@ -56,6 +58,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(null) // null | {} (등록) | transaction (수정)
+  const [receiptOpen, setReceiptOpen] = useState(false) // 영수증으로 추가 모달
   const [deleting, setDeleting] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [actionError, setActionError] = useState('')
@@ -183,10 +186,10 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-5">
-      {/* 헤더: 왼쪽 [제목 블록], 오른쪽 [월 선택기, 카테고리 선택]. 좁아지면 줄바꿈 */}
+      {/* 헤더: 왼쪽 [제목 블록], 오른쪽 [월 선택기, 카테고리 선택, 보기 스위치]. 좁아지면 줄바꿈 */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <PageHeader icon="transactions" title="거래 내역" subtitle="수입과 지출을 기록하고 관리해요" />
-        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+        <div className="flex w-full flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end">
           <MonthPicker month={month} onChange={changeMonth} />
           {!loading && !error && categoryOptions.length > 0 && (
             <Select
@@ -201,10 +204,11 @@ export default function TransactionsPage() {
               ]}
             />
           )}
+          <ViewToggle value={view} onChange={setView} />
         </div>
       </div>
 
-      {/* 합계 칩(왼쪽) + [보기 스위치][+ 거래 등록](오른쪽 끝, 같은 높이). 좁아지면 줄바꿈하고 모바일에서는 스위치 옆에서 버튼이 남는 폭을 쓴다 */}
+      {/* 합계 칩(왼쪽) + [영수증으로 추가][+ 거래 등록](오른쪽 끝, 같은 높이). 좁아지면 줄바꿈 */}
       <div className="flex flex-wrap items-center gap-2">
         <span className={`chip focus-ring transition-colors duration-150 motion-reduce:transition-none ${chipTone('INCOME')}`} {...chipProps('INCOME')}>
           <span className="h-2 w-2 rounded-full bg-income" />
@@ -218,8 +222,11 @@ export default function TransactionsPage() {
           <span className="h-2 w-2 rounded-full bg-gem-ink" />
           잔액 <strong className="num-strong">{formatKRW(totals.income - totals.expense)}</strong>
         </span>
-        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-          <ViewToggle value={view} onChange={setView} />
+        <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap">
+          <Button variant="secondary" className="h-10 sm:h-9" onClick={() => setReceiptOpen(true)} disabled={cats.loading || Boolean(cats.error)}>
+            <Icon name="receipt" className="h-4 w-4" />
+            영수증으로 추가
+          </Button>
           <Button className="h-10 flex-1 sm:h-9 sm:flex-none" onClick={() => setEditing({})} disabled={cats.loading || Boolean(cats.error)}>
             + 거래 등록
           </Button>
@@ -314,6 +321,10 @@ export default function TransactionsPage() {
             onCancel={() => setEditing(null)}
           />
         </Modal>
+      )}
+
+      {receiptOpen && (
+        <ReceiptImportDialog categories={cats.categories} onClose={() => setReceiptOpen(false)} onSaved={reload} />
       )}
 
       {deleting && (
