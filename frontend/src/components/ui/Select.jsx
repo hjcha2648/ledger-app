@@ -1,8 +1,8 @@
 import { useId } from 'react'
 import Icon from './Icon'
 
-// options: [{ value, label }]
-export default function Select({ label, error, options, className = '', id, ...props }) {
+// options: [{ value, label }], fieldClassName: <select> 자체에 덧붙일 클래스(예: 알약형 rounded-full)
+export default function Select({ label, error, options, className = '', fieldClassName = '', id, ...props }) {
   const autoId = useId()
   const selectId = id ?? autoId
   const errorId = `${selectId}-error`
@@ -17,7 +17,7 @@ export default function Select({ label, error, options, className = '', id, ...p
         id={selectId}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`field ${error ? 'field-error' : ''}`}
+        className={`field ${error ? 'field-error' : ''} ${fieldClassName}`}
         {...props}
       >
         {options.map((o) => (

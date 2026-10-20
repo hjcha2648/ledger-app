@@ -54,6 +54,14 @@ function seedDemoData() {
     if (back % 2 === 0) add('INCOME', '용돈', 10, 100000, null, '부모님')
     add('EXPENSE', '주거·통신', 5, 450000 + back * 3000, '월세/통신비')
     add('EXPENSE', '식비', 8, 42000 + back * 1500, '마트')
+    add('EXPENSE', '교통', 8, 4800, '버스') // 캘린더에서 한 날짜에 거래 3건(점 표시 확인용)
+    add('EXPENSE', '여가·문화', 8, 12000, '카페')
+    if (back === 0) {
+      // 이번 달 8일에 거래를 7건으로 늘려 캘린더 점 5개 제한("+N")을 확인할 수 있게 한다
+      add('INCOME', '용돈', 8, 20000, null, '친구에게 받음')
+      add('EXPENSE', '식비', 8, 3500, '편의점')
+      add('EXPENSE', '식비', 8, 6200, '간식')
+    }
     add('EXPENSE', '식비', 14, 18500, '점심')
     add('EXPENSE', '식비', 21, 36000 - back * 1000, '저녁 외식')
     add('EXPENSE', '교통', 12, 55000, '교통카드')
@@ -332,6 +340,46 @@ export const mockDashboard = {
       summary: { income_krw: income, expense_krw: expense, balance_krw: income - expense },
       expense_by_category,
       monthly_compare,
+    }
+  },
+}
+
+// ---------- chat (POST /api/chat 목: 선택 월 데이터로 간단한 일반 텍스트 답변. 줄바꿈과 "- " 목록 포함) ----------
+const won = (n) => `${new Intl.NumberFormat('ko-KR').format(n)}원`
+const CYCLE_KO = { WEEKLY: '매주', MONTHLY: '매월', YEARLY: '매년' }
+
+export const mockChat = {
+  async send({ month, messages }) {
+    await wait(900)
+    const uid = currentUserId()
+    checkMonth(month)
+    const list = Array.isArray(messages) ? messages : []
+    const bad = list.length < 1 || list.length > 10 || list.at(-1)?.role !== 'user' || list.some((m) => !String(m.content ?? '').trim() || m.content.length > 1000)
+    if (bad) throw invalid('messages')
+
+    const q = list.at(-1).content
+    const label = `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월`
+    const cur = await mockDashboard.get(month)
+
+    if (/정기|구독/.test(q)) {
+      const subs = db.subscriptions.filter((s) => s.user_id === uid)
+      if (!subs.length) return { reply: '등록된 정기결제가 없어요.' }
+      const lines = subs.map((s) => `- ${s.name}: ${CYCLE_KO[s.billing_cycle]} ${won(s.amount_krw)}`)
+      const top = [...subs].sort((a, b) => b.amount_krw - a.amount_krw)[0]
+      return { reply: `정기결제는 ${subs.length}개예요.\n${lines.join('\n')}\n금액이 가장 큰 건 ${top.name}(${won(top.amount_krw)})입니다.` }
+    }
+    if (/지난달|저번|전월|비교|늘었|줄었/.test(q)) {
+      const prev = await mockDashboard.get(shiftMonth(month, -1))
+      const diff = cur.summary.expense_krw - prev.summary.expense_krw
+      return { reply: `${label} 지출은 ${won(cur.summary.expense_krw)}으로 지난달(${won(prev.summary.expense_krw)})보다 ${won(Math.abs(diff))} ${diff >= 0 ? '늘었어요' : '줄었어요'}.` }
+    }
+    if (/카테고리|많이|가장/.test(q)) {
+      const top = cur.expense_by_category.slice(0, 3)
+      if (!top.length) return { reply: `${label}에는 지출 내역이 없어요.` }
+      return { reply: `${label}에 가장 많이 쓴 카테고리예요.\n${top.map((c) => `- ${c.name}: ${won(c.amount_krw)}`).join('\n')}` }
+    }
+    return {
+      reply: `${label} 요약이에요.\n- 수입: ${won(cur.summary.income_krw)}\n- 지출: ${won(cur.summary.expense_krw)}\n- 잔액: ${won(cur.summary.balance_krw)}`,
     }
   },
 }

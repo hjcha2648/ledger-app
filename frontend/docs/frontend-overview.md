@@ -8,10 +8,11 @@ React 19 · Vite 8 · Tailwind CSS 4 · Recharts 3 · react-router-dom 7 (JavaSc
 |---|---|---|---|
 | `/login` | 로그인 | `pages/LoginPage.jsx` | 공개 (로그인 상태면 `/home`으로 이동) |
 | `/register` | 회원가입 | `pages/RegisterPage.jsx` | 공개 |
-| `/home` | 현관 화면 (떠다니는 메시 배경, 큰 문구, 큰 선 아이콘 3개, 순차 등장) | `pages/HomePage.jsx` | 로그인 필요, **로그인 후 첫 화면** |
+| `/home` | 현관 화면 (떠다니는 메시 배경, 큰 문구, 큰 선 아이콘 4개(NAV_LINKS), 순차 등장) | `pages/HomePage.jsx` | 로그인 필요, **로그인 후 첫 화면** |
 | `/dashboard` | 요약 카드 3개, 도넛 차트, 6개월 막대 차트 | `pages/DashboardPage.jsx` | 로그인 필요 |
-| `/transactions` | 월별 거래 표, 등록·수정 모달, 삭제 확인 | `pages/TransactionsPage.jsx` | 로그인 필요 |
+| `/transactions` | 월별 거래 표 또는 캘린더(`?view=calendar`), 등록·수정 모달, 삭제 확인 | `pages/TransactionsPage.jsx` | 로그인 필요 |
 | `/subscriptions` | 정기결제 목록, 등록 모달, 삭제 확인 (수정 없음) | `pages/SubscriptionsPage.jsx` | 로그인 필요 |
+| `/chat` | AI 챗봇 대화 (`POST /api/chat`, 월 선택·예시 질문·안내 문구) | `pages/ChatPage.jsx` | 로그인 필요 |
 | 그 외 | `/home`으로 이동 | `App.jsx` | - |
 
 - 라우트 구성은 `src/App.jsx`: `PublicRoute`(로그인/회원가입) → `ProtectedRoute` → `AppLayout`(상단 바 + 본문).
@@ -57,6 +58,7 @@ frontend/
 | `transactions.js` | `listTransactions(month)`, `createTransaction`, `updateTransaction`, `deleteTransaction` |
 | `subscriptions.js` | `listSubscriptions`, `createSubscription`, `deleteSubscription` |
 | `dashboard.js` | `getDashboard(month)` |
+| `chat.js` | `sendChat({ month, messages })` → `POST /api/chat`, 답변 일반 텍스트(`reply`)만 반환. 목 모드는 `mockChat` |
 | `mock/index.js` | 백엔드 없이 쓰는 인메모리 목 서버 (데모 계정 `demo@example.com` / `demo1234`). 루트 API 계약의 응답 모양을 따른다 |
 
 - 각 API 모듈은 `VITE_USE_MOCK`이 `true`일 때만 목 서버를 동적 import 한다. 운영 빌드(`.env.production`)에서는 목 코드가 번들에서 제거된다.
@@ -75,10 +77,11 @@ frontend/
 |---|---|
 | `LoginPage.jsx` | 이메일·비밀번호 로그인, 가입 완료 안내, 서버 오류 표시 |
 | `RegisterPage.jsx` | 이메일 형식·비밀번호 8~64자·확인 일치 검증, 서버 필드 오류 표시, 가입 후 `/login`으로 이동 |
-| `HomePage.jsx` | 현관 화면. 초록·노랑·코랄·티얼 블러 원 4개가 22~30초 주기로 떠다니는 메시 배경 + 옅은 점 패턴, 큰 문구(뒷부분 그라데이션), 칸·이름·설명 없이 큰 선 아이콘 3개만 표시(hover 시 6px 떠오름·accent 색·선 그리기), 하단 로고 문구. 문구 → 아이콘(100ms 간격) → 하단 문구 순차 등장 |
+| `HomePage.jsx` | 현관 화면. 초록·노랑·코랄·티얼 블러 원 4개가 22~30초 주기로 떠다니는 메시 배경 + 옅은 점 패턴, 큰 문구(뒷부분 그라데이션), 칸·이름·설명 없이 큰 선 아이콘 4개(NAV_LINKS)만 표시(hover 시 6px 떠오름·accent 색·선 그리기), 하단 로고 문구. 문구 → 아이콘(100ms 간격) → 하단 문구 순차 등장 |
 | `DashboardPage.jsx` | (이번 달·지난달 `getDashboard`를 `Promise.allSettled`로 병렬 조회: 지난달만 실패하면 "-" 처리, 월 변경 시 늦은 응답 무시)  월 선택, 아이콘 배지·보조 문구가 있는 총수입·총지출·잔액 카드(**정적**: hover·클릭·등장 애니메이션 없음), 폭은 다른 화면과 같은 `max-w-[58rem]`. 카테고리별 지출 도넛 카드와 최근 6개월 수입·지출 카드를 위아래로 쌓아 각각 전체 폭으로 배치(모바일도 같은 순서). 화면 전환 fade-up 제외 |
-| `TransactionsPage.jsx` | 월 선택, 수입·지출·잔액 카테고리별 보기 드롭다운 한 칸(전체 + 그 달 거래에 나온 카테고리, 선택하면 표와 수입·지출·잔액 합계가 그 카테고리만 반영, 프론트에서만 걸러 API·백엔드 변경 없음), 합계 칩 3개(수입·지출 칩은 호버·포커스하면 표에서 해당 거래를 유형 색 배경으로 강조하고 나머지는 흐리게, 잔액 칩은 정적), 거래 표(유형 배지, 금액 우측 정렬, 수정·삭제 아이콘 버튼), 등록/수정 모달, 삭제 확인 |
+| `TransactionsPage.jsx` | 월 선택, 보기 토글(표 ↔ 캘린더, URL `?view=calendar`로 유지·기본 표), 캘린더 보기(월 거래를 날짜별로 묶어 `TransactionCalendar`에 전달, 선택 날짜 상세는 데스크톱 아래 카드·모바일 하단 시트, 수정·삭제·등록 핸들러와 모달은 표와 공유, 월 변경 시 선택 날짜 초기화). 헤더: 왼쪽 [제목 블록], 오른쪽 [월 선택기, 카테고리별 보기 드롭다운(알약형, 내용 폭 자동·최소 10.5rem·pr-10이라 "전체 카테고리"·가장 긴 이름이 잘리지 않음)](좁아지면 줄바꿈, 375px에서는 선택 창이 한 줄 전체 폭), 합계 줄: 칩 왼쪽 + 오른쪽 끝 [보기 스위치][+ 거래 등록](같은 높이 36px·모바일 40px, 375px에서는 스위치 옆에서 버튼이 남는 폭). 카테고리별 보기 드롭다운은 전체 + 그 달 거래에 나온 카테고리이고(선택하면 표와 수입·지출·잔액 합계가 그 카테고리만 반영, 프론트에서만 걸러 API·백엔드 변경 없음), 합계 칩 3개(수입·지출 칩은 호버·포커스하면 표에서 해당 거래를 유형 색 배경으로 강조하고 나머지는 흐리게, 잔액 칩은 정적), 거래 표(유형 배지, 금액 우측 정렬, 수정·삭제 아이콘 버튼), 등록/수정 모달, 삭제 확인 |
 | `SubscriptionsPage.jsx` | 정보 배너(accent-soft), 정기결제 표(주기 칩, 삭제 아이콘 버튼), 등록 모달, 삭제 확인 |
+| `ChatPage.jsx` | AI 챗봇 화면. 내 말풍선(검정, 오른쪽)·답변 말풍선(흰색, 왼쪽, 앵무새 아바타), 답변은 일반 텍스트라 `whitespace-pre-line`으로 줄바꿈·"- " 목록 그대로 표시. 대화는 컴포넌트 상태에만 보관(새로고침·"새 대화"로 초기화, 서버 저장 없음)하고 최근 10개만 전송, 기준 월은 월 선택기로 바꾸며 "2026년 10월 데이터 기준"·"가상 데이터 기반이며 금융 조언이 아닙니다" 표시. 빈 화면에 예시 질문 버튼 3개, 전송 중에는 점 3개 표시(동작 줄이기 시 정지)와 전송 버튼 잠금, 입력은 Enter 전송·Shift+Enter 줄바꿈(한글 조합 중 Enter는 전송 안 함)·1000자 제한(900자부터 카운터). 오류는 서버 `detail`(429 "질문이 너무 많습니다…", 503 "챗봇을 지금 사용할 수 없습니다…", 연결 실패 등)을 `ErrorMessage`로 보이고 "다시 시도"로 마지막 질문 재전송. 503이어도 다른 화면은 정상 |
 
 ### 3.4 `src/components/`
 
@@ -87,7 +90,7 @@ frontend/
 | 파일 | 역할 |
 |---|---|
 | `AppLayout.jsx` | 로그인 후 공통 틀 (상단 바 + 본문 최대 폭 58rem(928px), 모든 화면 공통). 화면 전환 시 fade-up(홈·대시보드 제외) |
-| `Navbar.jsx` | 반투명 흰 배경 + blur, 하단 옅은 테두리, sticky, 세로 패딩 `py-4`(모바일 72px·sm 이상 80px). 앵무새 로고 + 이름(홈으로 이동), 메뉴 아이콘 3개(홈에서는 숨김, 현재 메뉴는 accent-soft 알약), 로그아웃 아이콘. 호버 시 확대 + 이름 표시. 375px에서도 한 줄에 들어가도록 모바일 크기 축소 |
+| `Navbar.jsx` | 반투명 흰 배경 + blur, 하단 옅은 테두리, sticky, 세로 패딩 `py-4`(모바일 72px·sm 이상 80px). 앵무새 로고 + 이름(홈으로 이동, 왼쪽), 메뉴 아이콘 4개(3열 grid `1fr auto 1fr`의 가운데 열이라 화면 가운데 정렬, 로고가 길어 겹칠 폭이면 밀려남)(홈에서는 숨김)와 로그아웃 아이콘은 배경·테두리·감싸는 상자 없이 아이콘만 보이고 버튼 크기(모바일 40px·sm 이상 48px)로 터치 영역 유지. 아이콘 색은 평소 slate-600, 현재 메뉴는 accent 아이콘 + 아래 4px accent 점(`aria-current`는 NavLink가 부여, 배경 칸 없음), 호버·포커스 시 gem-ink + 1.1배 확대(동작 줄이기면 색만)와 이름(HoverLabel) 표시, focus-visible은 둥근 outline. 아이콘 간격은 버튼 gap 4px(sm 이상 8px)이고 375px에서도 한 줄에 들어가도록 모바일 크기 축소 |
 | `AuthLayout.jsx` | 로그인·회원가입 틀. 로고 → 이름 → 문구 수직 중앙 정렬, 카드형 폼(shadow-pop), 홈과 같은 톤의 옅은 브랜드색 블러 원 배경, 전체를 위로 올려 폼이 중앙 부근에 오도록 배치 |
 | `PageHeader.jsx` | 페이지 제목 (accent-soft 단색 아이콘 배지 + 부드러운 링 + 제목 + 한 줄 설명) |
 
@@ -118,7 +121,10 @@ frontend/
 | `MonthPicker.jsx` | 알약형 컨테이너 안의 이전/다음 아이콘 버튼 + 월 라벨 |
 | `DataTable.jsx` | 거래·정기결제 공통 표 틀: `TableCard`, `DataTable`, `Tr`, `Td`, `RowActions`, `RowIconButton`(평소 회색, 호버 시 강조). 작은 화면에서는 카드 안에서 가로 스크롤 |
 | `TypeBadge.jsx` | 수입/지출 라벨 칩 (색 + 글자) |
-| `TransactionForm.jsx` | 거래 등록·수정 폼. 유형에 따라 카테고리 필터링, 폼 안에서 개인 카테고리 추가 |
+| `TransactionForm.jsx` | 거래 등록·수정 폼(`initialDate`로 등록 시 거래일 미리 채움). 유형에 따라 카테고리 필터링, 폼 안에서 개인 카테고리 추가 |
+| `TransactionCalendar.jsx` | 일요일 시작 월 달력(role=grid, 방향키·Enter/Space). 날짜 칸에 수입(+초록)·지출(−빨강) 합계 축약 표시(전체 금액은 title), 거래 1건당 점 1개(수입 초록 먼저·지출 빨강 나중, 칸 왼쪽 하단(날짜 숫자와 같은 왼쪽 선) 한 줄, 모바일 5px)를 최대 5개까지 그리고 6건 이상이면 4개 + "+남은 건수", 칸 aria-label에 수입·지출 건수 포함, 오늘은 gem-ink 알약, 선택 날짜 칸은 평소 흰 배경 그대로 테마 회색(slate-300, 입력창 테두리와 같은 색) 2px 테두리(inset, 글자색은 기본), 앞뒤 인접 달 칸은 비활성, 일요일 rose·토요일 sky 글자색, 월 변경 시 fade(150ms, 동작 줄이기 시 없음) 칸 스타일은 `cellStyle()` 한 함수가 결정(앞뒤 채움 칸은 효과 없음, 그 외는 칩 호버 규칙, 선택 칸은 평소에만 slate-300 2px 테두리). 합계 칩(수입·지출)을 호버·포커스하는 동안: 그 종류가 있는 칸은 표 행과 같은 옅은 초록·빨강(10%, 구분선 색이 비치지 않게 흰색을 먼저 깐 `CELL_TINT`), 그 외 모든 칸(다른 종류만 있는 칸·거래 없는 칸 포함)은 불투명도 0.4로 흐림(150ms, 동작 줄이기 시 즉시). 색과 흐림 정도는 표 행 호버와 같은 `constants/hoverTone.js` 값을 공유. 선택 칸도 같은 규칙을 따르고 이 동안에는 회색 테두리가 사라지며 호버가 끝나면 돌아옴. 잔액 칩은 효과 없음. aria-selected·aria-label은 호버와 무관하게 유지 |
+| `DayDetail.jsx` | 선택한 날짜의 거래 목록(카테고리·사용처/메모·금액·수정·삭제), 수입·지출 합계, "이 날짜로 등록" 버튼, 거래 없는 날은 EmptyState |
+| `ViewToggle.jsx` | 아이콘만 보이는 "표 \| 캘린더" 슬라이드 스위치: 칸 42px 정사각형(전체 약 90px), 목록·달력 아이콘 18px. 하나의 accent-soft 알약 indicator 가 `translateX`(220ms, cubic-bezier)로 선택 칸으로 이동(두 칸 폭 동일·초기 위치는 첫 렌더에 확정, 동작 줄이기 시 즉시 이동). 호버·포커스 시 이름("표 보기"/"캘린더 보기")이 글씨만 150ms opacity로 absolute 표시(첫 칸 왼쪽·둘째 칸 오른쪽 맞춤), aria-label·title 포함. role=tablist/tab, 좌우 방향키·Home/End |
 | `SubscriptionForm.jsx` | 정기결제 등록 폼 (지출 카테고리만, 기본값 "구독·정기결제") |
 
 ### 3.5 그 외
@@ -127,11 +133,14 @@ frontend/
 |---|---|
 | `constants/app.js` | 서비스 이름 `Budgo`, 로그인 문구, 홈 중앙 문구(`HOME_PHRASE`) |
 | `constants/chartColors.js` | 도넛 차트 색 상수(`DONUT_COLORS` 6색, `DONUT_ETC_COLOR`) |
-| `constants/nav.js` | 메뉴 항목(경로·이름·아이콘·한 줄 설명). 상단 바와 홈이 함께 사용 |
+| `constants/hoverTone.js` | 합계 칩(수입·지출) 호버 하이라이트 색 상수(`TYPE_TINT`, `CELL_TINT`, `DIM_SELF`, `DIM_CHILDREN`): 표 행과 캘린더 칸이 같은 값을 쓴다 |
+| `constants/nav.js` | 메뉴 항목(대시보드·거래 내역·정기결제·AI 챗봇, 경로·이름·아이콘·한 줄 설명). 상단 바와 홈이 함께 사용 |
 | `hooks/useCategories.js` | 카테고리 조회·추가 훅 (거래·정기결제 폼에서 사용) |
 | `hooks/useReducedMotion.js` | OS "동작 줄이기" 여부 (차트 애니메이션 비활성화에 사용) |
+| `hooks/useMediaQuery.js` | CSS 미디어 쿼리 일치 여부 (캘린더 상세를 데스크톱 카드/모바일 시트로 나눌 때 사용) |
 | `utils/format.js` | 원화 포맷, 수입/지출 부호·색, 유형·주기 한글 라벨, 날짜·월 축약 표기, 단위 없는 숫자(`formatNumber`) |
-| `utils/month.js` | `YYYY-MM` 계산, 월 라벨, 오늘 날짜 |
+| `utils/month.js` | `YYYY-MM` 계산, 월 라벨, 오늘 날짜, 달력 격자(`buildMonthGrid`, `daysInMonth`, `weekdayOf`: 문자열 기반이라 타임존 밀림 없음), 날짜 라벨(`formatDayLabel`) |
+| `utils/calendar.js` | 월 거래를 날짜별 합계·건수·목록으로 묶는 `groupByDate` |
 | `utils/formErrors.js` | 서버 422 필드 오류를 폼 입력칸 이름으로 매핑 |
 | `index.css` | 디자인 토큰(`@theme`), 공통 클래스(`@layer components`), 그라데이션 글자, 애니메이션, 차트 영역 한정 포커스 윤곽선 제거 규칙(`.recharts-wrapper`) |
 
