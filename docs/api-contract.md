@@ -321,6 +321,50 @@ POST monthly-email 이 409면 → GET email-status 로 위 흐름 다시
 
 ---
 
+## 영수증·명세서 인식 ([PLAN.md](../PLAN.md) 기능 3)
+
+### POST `/api/receipts/analyze` — 파일 1개 분석 → 저장하지 않은 거래 입력 초안 (Bearer JWT, `multipart/form-data`)
+
+- 필드 이름 `file`, **JPEG·PNG·WEBP 이미지 또는 PDF**, 5MB 이하. 형식은 파일 내용(시그니처)으로 판단한다
+- 영수증 1장 → 보통 **결제 1건**(최종 결제 금액, 대표 품목은 `memo`). 카드 명세서·결제 내역 → **결제 1건마다 1항목**(최대 30건)
+- 결제 취소·환불 줄, 원화가 아닌 결제는 항목에서 빼고 `warnings`로 알려 준다
+- **저장하지 않는다.** 사용자가 확인·수정한 항목만 프론트가 기존 `POST /api/transactions`로 저장한다
+- 응답까지 보통 3~10초 (전송 중 표시 필요). 파일은 서버에 남지 않는다
+
+```js
+const form = new FormData()
+form.append('file', file)          // Content-Type 헤더는 직접 넣지 않는다 (브라우저가 boundary 포함해 설정)
+fetch('/api/receipts/analyze', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form })
+```
+
+응답 `200`
+```json
+{
+  "items": [
+    {"type": "EXPENSE", "amount_krw": 20300, "occurred_on": "2026-10-18", "merchant": "스타벅스 강남역점",
+     "memo": "아메리카노 외 2건", "category_id": 1, "category_name": "식비"}
+  ],
+  "warnings": ["10/11 쿠팡 결제취소(-38,900원) 건은 제외했습니다."]
+}
+```
+- `items`는 1개 이상 (없으면 422)
+- `occurred_on`: 날짜를 못 읽었거나 미래 날짜면 `null` → **사용자가 입력해야 저장 가능**
+- `category_id`: 이 사용자가 쓸 수 있고 `type`이 맞는 카테고리만, 애매하면 `null` (`category_name`도 `null`) → 사용자가 고르게
+- `merchant`·`memo`는 `null` 가능. `memo`에 카드번호·승인번호 같은 식별 정보는 넣지 않도록 지시돼 있다
+- `warnings`: 사용자에게 그대로 보여 줄 짧은 한국어 문장 (빈 배열 가능)
+
+| 코드 | 경우 | `detail` |
+|---|---|---|
+| 401 | 토큰 없음·만료 | `인증이 필요합니다.` |
+| 413 | 5MB 초과 | `파일은 5MB 이하만 올릴 수 있습니다.` |
+| 422 | `file` 필드 없음 (FastAPI 기본 배열 형식) | 배열 |
+| 422 | 지원하지 않는 형식 | `JPEG·PNG·WEBP 이미지 또는 PDF 파일만 올릴 수 있습니다.` |
+| 422 | 영수증·결제 내역으로 읽을 수 없음 (풍경 사진 등) | 이유 문장 (예: `영수증이나 결제 내역이 아닌 ... 찾을 수 없습니다.`) |
+| 429 | 사용자별 1분 5회 초과 | `분석 요청이 너무 많습니다. 잠시 후 다시 시도하세요.` |
+| 503 | 기능 꺼짐(`RECEIPT_ENABLED=false`), Bedrock 실패·시간 초과 | `지금은 영수증을 분석할 수 없습니다. 잠시 후 다시 시도하세요.` |
+
+---
+
 ## TypeScript 타입 (참고용)
 
 ```ts
