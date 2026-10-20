@@ -1,5 +1,5 @@
 import { APP_NAME, APP_TAGLINE } from '../../constants/app'
-import ParrotLogo from '../ui/ParrotLogo'
+import Logo from '../ui/Logo'
 
 export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
@@ -15,8 +15,8 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
         {/* 하단 여백(pb-36)으로 전체를 위로 올려, 입력 카드가 화면 세로 중앙 부근에 오도록 한다. */}
         {/* 로고 → 이름 → 문구를 중앙 정렬로 쌓고, 서로의 간격은 좁게 유지 */}
         <div className="mb-5 flex flex-col items-center text-center">
-          <ParrotLogo className="h-20 w-20" />
-          <h1 className="text-gradient text-6xl font-bold tracking-tight">{APP_NAME}</h1>
+          <Logo className="h-20 w-20" />
+          <h1 className="text-gradient-brand font-brand font-bold text-7xl tracking-normal sm:text-8xl">{APP_NAME}</h1>
           <p className="-mt-1 text-base break-keep text-ink-subtle">{APP_TAGLINE}</p>
         </div>
         <div className="card rounded-sheet p-6 shadow-pop">

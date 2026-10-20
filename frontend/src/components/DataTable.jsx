@@ -1,4 +1,4 @@
-import { DIM_SELF, TYPE_TINT } from '../constants/hoverTone'
+import { DIM_SELF, HOVER_BG, TYPE_TINT } from '../constants/hoverTone'
 import Icon from './ui/Icon'
 
 // 거래·정기결제가 함께 쓰는 표 스타일. 데이터 로직은 각 페이지가 가진다.
@@ -35,7 +35,7 @@ export default function DataTable({ columns, children, minWidth = 'min-w-[640px]
 const TR_TONE = { income: `${TYPE_TINT.INCOME} hover:bg-income/15`, expense: `${TYPE_TINT.EXPENSE} hover:bg-expense/15`, dim: DIM_SELF }
 
 export function Tr({ children, tone }) {
-  return <tr className={`transition duration-150 ${TR_TONE[tone] ?? 'hover:bg-slate-50/70'}`}>{children}</tr>
+  return <tr className={`transition duration-150 ${TR_TONE[tone] ?? HOVER_BG}`}>{children}</tr>
 }
 
 export function Td({ children, align, className = '' }) {

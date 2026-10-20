@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { WEEKDAYS, buildMonthGrid, formatMonthDay, formatMonthLabel, today } from '../utils/month'
-import { CELL_TINT, DIM_CHILDREN } from '../constants/hoverTone'
+import { CELL_HOVER, CELL_TINT, DIM_CHILDREN } from '../constants/hoverTone'
 import { formatCompactKRW, formatKRW } from '../utils/format'
 
 const DOT = { INCOME: 'bg-income', EXPENSE: 'bg-expense' }
@@ -8,18 +8,18 @@ const DOT = { INCOME: 'bg-income', EXPENSE: 'bg-expense' }
 const WEEKDAY_TEXT = { 0: 'text-rose-400', 6: 'text-sky-500' }
 const MAX_DOTS = 5 // 점 최대 개수. 넘으면 마지막(5번째) 자리를 "+남은 건수"로 바꾼다
 const MINUS = '−'
-// 선택 칸 표시: 배경은 그대로 두고 둘레에만 2px 테두리. 색은 테마의 회색 테두리(입력창·보조 버튼의 border-slate-300)와 같은 값 (inset 그림자라 칸 크기·주변 칸 위치가 변하지 않는다)
-const SELECT_BORDER = 'shadow-[inset_0_0_0_2px_var(--color-slate-300)]'
+// 선택 칸 표시: 배경은 그대로 두고 둘레에만 2px 테두리. 색은 테마의 옅은 회색(slate-200, 보조 버튼 호버 배경과 같은 값) (inset 그림자라 칸 크기·주변 칸 위치가 변하지 않는다)
+const SELECT_BORDER = 'shadow-[inset_0_0_0_2px_var(--color-slate-200)]'
 
 // 칸 스타일을 정하는 유일한 함수. 우선순위:
 //   1) 이번 달이 아닌 칸 → 항상 비활성 (칩 호버 효과 없음)
 //   2) 합계 칩 호버 중(hover) → 그 종류가 있는 칸은 초록/빨강 옅은 배경, 그 외 모든 칸은 흐리게 (색·흐림 정도는 표 행과 같은 constants/hoverTone.js 값)
-//   3) 호버가 없으면 기본 (hover 시 옅은 accent-soft)
-//   + 선택된 칸은 평소(호버가 없을 때)에만 테마 회색(slate-300) 2px 테두리를 갖고, 칩 호버 중에는 테두리 없이 호버 규칙(틴트·흐림)만 따른다.
+//   3) 호버가 없으면 기본 (칸에 마우스를 올리면 옅은 회색(표 행보다 한 단계 진함, constants/hoverTone.js))
+//   + 선택된 칸은 평소(호버가 없을 때)에만 옅은 회색(slate-200) 2px 테두리를 갖고, 칩 호버 중에는 테두리 없이 호버 규칙(틴트·흐림)만 따른다.
 // 반환: cell(배경·흐림·포커스), ring(선택 테두리, 호버 중에는 빈 값)
 function cellStyle({ inMonth, selected, hover, incomeCount, expenseCount }) {
   if (!inMonth) return { cell: 'cursor-default bg-slate-50', ring: '' }
-  let cell = 'focus-ring bg-white hover:bg-accent-soft/30'
+  let cell = `focus-ring bg-white ${CELL_HOVER}`
   if (hover) {
     const has = (hover === 'INCOME' ? incomeCount : expenseCount) > 0
     cell = has ? `focus-ring ${CELL_TINT[hover]}` : `focus-ring bg-white ${DIM_CHILDREN}`

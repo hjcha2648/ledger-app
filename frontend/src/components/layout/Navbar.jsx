@@ -4,7 +4,7 @@ import { NAV_LINKS } from '../../constants/nav'
 import { useAuth } from '../../auth/AuthContext'
 import HoverLabel from '../ui/HoverLabel'
 import Icon from '../ui/Icon'
-import ParrotLogo from '../ui/ParrotLogo'
+import Logo from '../ui/Logo'
 
 // 아이콘만 보인다(배경·테두리 없음). 버튼 크기(모바일 40px, sm 이상 48px)는 그대로라 터치 영역이 줄지 않는다.
 // 호버·포커스: 아이콘 색이 gem-ink 로 바뀌고 1.1배 커진다(동작 줄이기면 색만). focus-visible 링은 아이콘 둘레의 둥근 outline.
@@ -25,9 +25,10 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/75 backdrop-blur-md">
       <div className="mx-auto grid max-w-[58rem] grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-4 sm:gap-4 sm:px-4">
-        <Link to="/home" aria-label={`${APP_NAME} 홈`} className="focus-ring col-start-1 flex items-center gap-1.5 justify-self-start rounded-full pr-2 sm:gap-2.5">
-          <ParrotLogo className="h-10 w-10 sm:h-12 sm:w-12" />
-          <span className="text-gradient text-2xl font-bold tracking-tight sm:text-3xl">{APP_NAME}</span>
+        <Link to="/home" aria-label={`${APP_NAME} 홈`} className="focus-ring col-start-1 flex items-center gap-0.5 justify-self-start rounded-full pr-2 sm:gap-1">
+          <Logo className="h-8 w-8 sm:h-10 sm:w-10" />
+          {/* 이름은 로고보다 크게. 큰 글자의 줄 높이가 상단 바 높이를 키우지 않도록 위아래 여백을 음수로 상쇄 */}
+          <span className="text-gradient-brand font-brand font-bold -my-[0.2em] text-[1.875rem] tracking-normal sm:text-[2.75rem]">{APP_NAME}</span>
         </Link>
 
         {!isHome && (
