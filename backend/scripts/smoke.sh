@@ -182,6 +182,13 @@ check "막대 마지막 달 = 선택 월" "$(jget 'd["monthly_compare"][-1]["mon
 req GET "/dashboard?month=$MONTH" "$TOKEN_B"
 check "B 대시보드 지출 0" "$(jget 'd["summary"]["expense_krw"]')" 0
 
+# ---------------------------------------------------------------- 챗봇 (모델 호출 없이 인증·검증만, 비용 0)
+section "chat"
+req POST "/chat" "" '{"month":"'"$MONTH"'","messages":[{"role":"user","content":"hi"}]}'
+check "챗봇 토큰 없이 401" "$CODE" 401
+req POST "/chat" "$TOKEN_A" '{"month":"'"$MONTH"'","messages":[{"role":"assistant","content":"hi"}]}'
+check "챗봇 마지막 메시지 assistant → 422" "$CODE" 422
+
 # ---------------------------------------------------------------- 정리
 section "cleanup"
 req DELETE "/subscriptions/$SUB_ID" "$TOKEN_A"

@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     cors_origins: str = ""  # 쉼표로 구분, 로컬 개발용
     enable_docs: bool = True
 
+    # AI 챗봇 (Amazon Bedrock, PLAN.md). 기본은 꺼짐 — 켜지 않으면 /api/chat 은 503
+    chat_enabled: bool = False
+    bedrock_region: str = "ap-northeast-2"
+    bedrock_model_id: str = "global.anthropic.claude-opus-5-5"  # 서울 리전은 inference profile ID 필수
+    bedrock_fallback_model_id: str = "global.anthropic.claude-opus-4-8"  # 거절(refusal) 시 재시도 모델, 비우면 사용 안 함
+    chat_rate_limit_per_min: int = 10
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
