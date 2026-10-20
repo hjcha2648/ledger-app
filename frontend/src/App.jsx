@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext'
 import ProtectedRoute from './auth/ProtectedRoute'
 import PublicRoute from './auth/PublicRoute'
 import AppLayout from './components/layout/AppLayout'
+import ChatPage from './pages/ChatPage'
 import DashboardPage from './pages/DashboardPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
+              <Route path="/chat" element={<ChatPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/home" replace />} />
