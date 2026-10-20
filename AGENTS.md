@@ -6,7 +6,7 @@
 
 개인 가계부 & 정기결제 목록 관리 웹앱. 3인 팀, 4일 개발, **기능 추가보다 끝까지 동작하는 배포가 우선**.
 
-- 기준 문서: [PRD.md](PRD.md) (v3.2)
+- 기준 문서: [PRD.md](PRD.md) (v3.2) + 추가 기능 계획 [PLAN.md](PLAN.md) (AI 가계부 챗봇)
 - 백엔드: `backend/` — **구현 완료**, API 14개 동작 중
 - 프론트엔드: `frontend/` — React + Vite + Tailwind CSS + Recharts
 - 인프라: S3 + CloudFront + EC2(FastAPI + MariaDB, systemd), 수동 배포
@@ -30,6 +30,7 @@
    - 거래 유형/카테고리 필터·검색·고급 정렬, 카테고리 수정·삭제
    - 회원 탈퇴, 비밀번호 재설정, 이메일 인증, 소셜 로그인, Cognito
    - Docker, Alembic, Pytest 자동화, CI/CD, IaC, AI 기능
+   - 단, **AI 가계부 챗봇(Amazon Bedrock, `POST /api/chat`)은 [PLAN.md](PLAN.md) 범위 안에서 허용**한다: 로그인한 사용자 본인 데이터만 근거로 답하는 읽기 전용 질의응답. 챗봇을 통한 거래 등록·수정·삭제, 대화 기록 저장, 그 밖의 AI 기능은 여전히 제외한다.
    - 화면 연출용 애니메이션(홈 화면의 배경·등장·hover 효과, 차트 등장 효과 등)은 **허용**한다. 단 OS의 "동작 줄이기"(`prefers-reduced-motion`) 설정을 존중하고, 기능·API·데이터 흐름은 바꾸지 않는다.
 5. 모든 API 경로는 `/api`로 시작한다. 프론트는 항상 **상대 경로 `/api/...`**로 호출한다 (로컬은 Vite 프록시, 운영은 CloudFront가 같은 도메인으로 전달).
 6. 브랜치: `feat/frontend`, `feat/infra`, `feat/backend`. `main`은 항상 배포 가능한 상태로 유지하고 PR로 병합한다 (Squash 대신 merge commit).
