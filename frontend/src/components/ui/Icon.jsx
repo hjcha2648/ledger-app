@@ -135,6 +135,12 @@ const PATHS = {
       <path d="M21 12H9" />
     </>
   ),
+  mail: (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </>
+  ),
 }
 
 // draw: 모든 도형에 pathLength=1 을 줘서 CSS(.icon-draw)로 stroke-dashoffset 애니메이션(선 그리기)을 쓸 수 있게 한다

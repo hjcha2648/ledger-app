@@ -4,6 +4,8 @@ import CategoryPieChart from '../components/charts/CategoryPieChart'
 import MonthlyBarChart from '../components/charts/MonthlyBarChart'
 import PageHeader from '../components/layout/PageHeader'
 import MonthPicker from '../components/MonthPicker'
+import MonthlyEmailDialog from '../components/MonthlyEmailDialog'
+import Button from '../components/ui/Button'
 import ErrorMessage from '../components/ui/ErrorMessage'
 import Icon from '../components/ui/Icon'
 import Spinner from '../components/ui/Spinner'
@@ -51,6 +53,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const [mailOpen, setMailOpen] = useState(false) // 명세서 메일 모달
 
   const reload = useCallback(() => {
     setLoading(true)
@@ -88,8 +91,16 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader icon="dashboard" title="대시보드" subtitle="이번 달 수입과 지출을 한눈에" />
-        <MonthPicker month={month} onChange={changeMonth} />
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthPicker month={month} onChange={changeMonth} />
+          <Button variant="soft" onClick={() => setMailOpen(true)}>
+            <Icon name="mail" className="h-4 w-4" />
+            명세서 메일로 받기
+          </Button>
+        </div>
       </div>
+
+      {mailOpen && <MonthlyEmailDialog month={month} onClose={() => setMailOpen(false)} />}
 
       {loading ? (
         <Spinner />
