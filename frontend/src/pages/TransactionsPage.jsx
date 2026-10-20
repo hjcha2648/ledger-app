@@ -194,12 +194,12 @@ export default function TransactionsPage() {
           {!loading && !error && categoryOptions.length > 0 && (
             <Select
               aria-label="카테고리별 보기"
-              className="w-full sm:w-auto"
-              fieldClassName="h-[2.625rem] min-w-[10.5rem] rounded-full pr-10 pl-4 whitespace-nowrap focus:border-slate-400 focus:bg-white focus:ring-0"
+              className="w-full sm:w-[8.5rem]"
+              fieldClassName="h-[2.625rem] rounded-full pr-9 pl-3.5 whitespace-nowrap focus:border-slate-400 focus:bg-white focus:ring-0"
               value={activeCat == null ? '' : String(activeCat)}
               onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
               options={[
-                { value: '', label: '전체 카테고리' },
+                { value: '', label: '전체' },
                 ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
               ]}
             />
