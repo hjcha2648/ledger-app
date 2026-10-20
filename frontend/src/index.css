@@ -223,3 +223,13 @@ body {
     animation: none;
   }
 }
+
+/* 차트 영역 한정: 마우스 클릭 시 Recharts(accessibilityLayer)가 svg·Pie 레이어에 주는 tabIndex 때문에 생기는 포커스 윤곽선 제거.
+   버튼·링크·입력창의 키보드 focus-visible 링은 이 범위 밖이라 그대로 유지된다. */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}

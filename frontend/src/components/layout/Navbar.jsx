@@ -22,7 +22,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/75 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-4">
+      <div className="mx-auto flex max-w-[58rem] items-center justify-between gap-2 px-3 py-4 sm:gap-4 sm:px-4">
         <Link to="/home" aria-label={`${APP_NAME} 홈`} className="focus-ring flex items-center gap-1.5 rounded-full pr-2 sm:gap-2.5">
           <ParrotLogo className="h-10 w-10 sm:h-12 sm:w-12" />
           <span className="text-gradient text-2xl font-bold tracking-tight sm:text-3xl">{APP_NAME}</span>
