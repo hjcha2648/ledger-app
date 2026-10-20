@@ -1,38 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { sendChat } from '../api/chat'
 import MonthPicker from '../components/MonthPicker'
 import LaserBubble from '../components/chat/LaserBubble'
+import ThinkingDots from '../components/chat/ThinkingDots'
+import TipArticle from '../components/chat/TipArticle'
 import ErrorMessage from '../components/ui/ErrorMessage'
 import Icon from '../components/ui/Icon'
 import Logo from '../components/ui/Logo'
 import { LIGHT_GRAY_BG } from '../constants/hoverTone'
 import useReducedMotion from '../hooks/useReducedMotion'
+import { copyText } from '../utils/copyText'
 import { currentMonth, formatMonthLabel } from '../utils/month'
 
 const MAX_SEND = 10 // 서버에는 최근 10개만 보낸다 (API 계약: messages 1~10개)
 const MAX_LEN = 1000 // content 최대 길이 (공백 제거 후 1~1000자)
 const MAX_INPUT_PX = 144 // 입력창 최대 높이: 줄 높이 24px × 6줄
-const EXAMPLES = ['이번 달 가장 많이 쓴 카테고리는?', '지난달보다 지출이 늘었어?', '정기결제 뭐뭐 있어?']
-// 복사: 보안 컨텍스트가 아니어서 clipboard API 가 막혀 있으면 임시 textarea 로 대체한다
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    try {
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
-      document.body.appendChild(ta)
-      ta.select()
-      const ok = document.execCommand('copy')
-      ta.remove()
-      return ok
-    } catch {
-      return false
-    }
-  }
-}
+// 예시 질문 후보: 페이지에 들어올 때마다 이 중 3개가 무작위로 보인다 (지출 습관 수준의 질문만, 한 줄에 3개가 들어가도록 18자 이내)
+const EXAMPLE_POOL = [
+  '이번 달 가장 많이 쓴 카테고리는?',
+  '지난달보다 지출이 늘었어?',
+  '정기결제 뭐뭐 있어?',
+  '이번 달 잔액은 얼마야?',
+  '수입이랑 지출 비교해줘',
+  '최근 6개월 지출 흐름은?',
+  '가장 큰 지출은 뭐야?',
+  '새로 생긴 지출 있어?',
+  '식비 줄이는 팁 알려줘',
+  '제일 비싼 정기결제는?',
+  '줄일 만한 지출은 뭐야?',
+  '저축 습관 팁 알려줘',
+]
+const pickExamples = (n = 3) => [...EXAMPLE_POOL].sort(() => Math.random() - 0.5).slice(0, n)
 const delay = (ms) => ({ animationDelay: `${ms}ms` }) // 첫 화면 순차 등장 간격
 // 첫 전송 때 (hero·예시가 접히고 대화 카드가 생기는) 전환 시간
 const TRANSITION = 'duration-[350ms] ease-out motion-reduce:transition-none'
@@ -176,25 +175,12 @@ function AssistantMessage({ text, animate, onFinish, onGrow, onRegenerate }) {
   )
 }
 
-// 응답 대기: 아바타 옆에 브랜드색(초록 → 노랑 → 코랄) 점 3개가 순서대로 튀고 "생각하는 중…"
-const DOT_COLORS = ['#12b76a', '#f2b83d', '#f4a3a8']
+// 응답 대기: 아바타 옆에 점 3개와 "생각하는 중…"
 function Thinking() {
   return (
     <div className="animate-msg flex items-center gap-3">
       <Avatar />
-      <div className="flex items-center gap-2.5 pt-0.5">
-        <span className="flex items-center gap-1" aria-hidden="true">
-          {DOT_COLORS.map((c, d) => (
-            <span
-              key={c}
-              className="h-2 w-2 animate-bounce rounded-full motion-reduce:animate-none"
-              style={{ backgroundColor: c, animationDelay: `${d * 120}ms` }}
-            />
-          ))}
-        </span>
-        <span className="text-xs text-ink-subtle">생각하는 중…</span>
-        <span className="sr-only">답변을 작성하는 중입니다</span>
-      </div>
+      <ThinkingDots />
     </div>
   )
 }
@@ -247,10 +233,12 @@ function ExampleQuestion({ q, delayMs, reduced, aimRef, onPick }) {
 }
 
 // 대화는 이 컴포넌트의 상태에만 둔다 (새로고침하면 초기화, 서버에 저장되지 않음).
-export default function ChatPage() {
+function ChatPageInner() {
   const [month, setMonth] = useState(currentMonth) // 답변의 근거가 되는 달
   const [messages, setMessages] = useState([]) // [{ role: 'user' | 'assistant', content }]
   const [input, setInput] = useState('')
+  const [tipOpen, setTipOpen] = useState(false) // 절약 팁 글 화면 (대화 messages 와 별개)
+  const [examples] = useState(pickExamples) // 마운트 때 한 번만 뽑는다 (리렌더로 바뀌지 않음)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const reduced = useReducedMotion()
@@ -259,6 +247,7 @@ export default function ChatPage() {
   const greetingRef = useRef(null) // 예시 질문 말풍선 꼬리가 향하는 인사 문구
   const [animateIndex, setAnimateIndex] = useState(null) // 타이핑 효과 중인 AI 메시지의 인덱스(방금 도착한 답변만)
   const epochRef = useRef(0) // "새 대화"를 누르면 올라가서, 늦게 도착한 이전 응답을 버린다
+  useEffect(() => () => void (epochRef.current += 1), []) // 챗봇 아이콘 초기화(재마운트) 때도 진행 중이던 응답을 버린다
 
   // 스크롤: 내가 방금 보낸 질문이면 항상 맨 아래로, 답변·대기·오류가 생겼을 때는 이미 맨 아래 근처(80px 이내)일 때만 따라간다.
   // 위로 올려서 읽는 중이면 강제로 이동하지 않고, 대신 우하단 "아래로" 버튼이 나타난다. (동작 줄이기면 즉시 이동)
@@ -332,6 +321,7 @@ export default function ChatPage() {
 
   const reset = () => {
     epochRef.current += 1
+    setTipOpen(false)
     setMessages([])
     setInput('')
     setError('')
@@ -375,10 +365,21 @@ export default function ChatPage() {
         <div className="flex flex-wrap items-center justify-end gap-2">
           <div className="flex items-center gap-2">
             <MonthPicker month={month} onChange={setMonth} compact />
+            {/* 절약 팁: 누르면 대화가 아니라 최근 3개월 동향 기반 글 화면으로 이동한다 */}
+            {!tipOpen && (
+              <button
+                type="button"
+                onClick={() => setTipOpen(true)}
+                title="최근 3개월 기록을 보고 절약 팁을 글로 정리해 보여줘요"
+                className="focus-ring inline-flex h-9 items-center rounded-full border border-line bg-white px-3.5 text-sm font-medium text-ink-muted shadow-soft transition-colors duration-150 hover:border-accent hover:bg-accent-soft hover:text-accent-ink motion-reduce:transition-none"
+              >
+                추천 절약 팁
+              </button>
+            )}
             <button
               type="button"
               onClick={reset}
-              disabled={messages.length === 0 && !sending}
+              disabled={messages.length === 0 && !sending && !tipOpen}
               className="focus-ring group inline-flex h-9 items-center gap-1.5 rounded-full bg-slate-100 px-3.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-accent-soft hover:text-accent-ink disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none"
             >
               <Icon
@@ -393,6 +394,9 @@ export default function ChatPage() {
         {/* 카드·박스 없이 배경 위에 바로 놓는다. 하나의 레이아웃이 연속해서 움직인다: 첫 화면에서는 인사·입력창·예시 질문이 세로 가운데에 모여 있고,
             첫 전송 시 인사·예시가 접히면서(grid-rows 1fr→0fr + fade) 메시지 영역이 늘어나(flex-grow 0→1) 입력창이 화면 아래로 연속해서 내려간다.
             같은 DOM 노드가 움직이므로 입력창이 순간이동하거나 깜빡이지 않는다. 높이는 100dvh 에서 상단 바·여백·헤더 줄을 뺀 값. */}
+        {tipOpen ? (
+          <TipArticle month={month} />
+        ) : (
         <section aria-label="AI 챗봇 대화" className="h-[calc(100dvh-12.75rem)] min-h-[30rem]">
           <div
             className={`mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col justify-center px-1 transition-[padding] sm:px-3 ${TRANSITION} ${
@@ -530,7 +534,7 @@ export default function ChatPage() {
             >
               <div className="overflow-hidden">
                 <div className="flex flex-col items-center gap-2 px-5 pt-4 pb-[4.25rem] sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8 sm:gap-y-3">
-                  {EXAMPLES.map((q, i) => (
+                  {examples.map((q, i) => (
                     <ExampleQuestion key={q} q={q} delayMs={i * 90} reduced={reduced} aimRef={greetingRef} onPick={() => submit(q)} />
                   ))}
                 </div>
@@ -550,7 +554,14 @@ export default function ChatPage() {
 
           </div>
         </section>
+        )}
       </div>
     </>
   )
+}
+
+// 상단 챗봇 아이콘을 /chat 에서 다시 누르면 Navbar 가 location.state.resetKey 를 바꾼다 → key 가 바뀌어 재마운트되고 모든 상태(팁·대화·입력·월·진행 중 요청)가 처음으로 돌아간다.
+export default function ChatPage() {
+  const resetKey = useLocation().state?.resetKey
+  return <ChatPageInner key={resetKey ?? 'initial'} />
 }

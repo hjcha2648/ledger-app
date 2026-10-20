@@ -361,6 +361,25 @@ export const mockChat = {
     const label = `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월`
     const cur = await mockDashboard.get(month)
 
+    if (/절약|팁|대안/.test(q)) {
+      // 선택 월 포함 최근 3개월 기록으로 지출이 늘어난 항목을 짚고 일반적인 절약 팁을 준다
+      const months = [shiftMonth(month, -2), shiftMonth(month, -1), month]
+      const dashes = await Promise.all(months.map((m) => mockDashboard.get(m)))
+      const total = dashes.reduce((a, d) => a + d.summary.expense_krw, 0)
+      if (total === 0) return { reply: `최근 3개월(${months[0]} ~ ${month})에 지출 기록이 없어서 팁을 드리기 어려워요. 거래를 먼저 기록해 보세요.` }
+      const amountOf = (d, name) => d.expense_by_category.find((c) => c.name === name)?.amount_krw ?? 0
+      const names = [...new Set(dashes.flatMap((d) => d.expense_by_category.map((c) => c.name)))]
+      const rows = names.map((name) => ({ name, first: amountOf(dashes[0], name), last: amountOf(dashes[2], name), sum: dashes.reduce((a, d) => a + amountOf(d, name), 0) }))
+      const top = [...rows].sort((a, b) => b.sum - a.sum)[0]
+      const up = [...rows].sort((a, b) => b.last - b.first - (a.last - a.first))[0]
+      const lines = ['■ 최근 3개월 동향', `최근 3개월 지출은 월평균 ${won(Math.round(total / 3))}이에요. 가장 비중이 큰 카테고리는 ${top.name}(3개월 ${won(top.sum)})입니다.`]
+      if (up && up.last > up.first) lines.push(`${up.name}은(는) ${won(up.first)}에서 ${won(up.last)}으로 늘었어요.`)
+      lines.push('', '■ 절약 팁과 대안')
+      lines.push(`- ${top.name}: 한 달 상한을 정해 두고 주 단위로 쓴 금액을 확인해 보세요.`)
+      if (up && up.last > up.first && up.name !== top.name) lines.push(`- ${up.name}: 늘어난 이유(충동구매·반복 지출)를 거래 메모로 확인하고 횟수를 줄여 보세요.`)
+      lines.push('- 쓰지 않는 정기결제는 해지하거나 더 저렴한 요금제로 바꿔 보세요.')
+      return { reply: lines.join('\n') }
+    }
     if (/정기|구독/.test(q)) {
       const subs = db.subscriptions.filter((s) => s.user_id === uid)
       if (!subs.length) return { reply: '등록된 정기결제가 없어요.' }

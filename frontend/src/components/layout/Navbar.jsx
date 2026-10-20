@@ -15,7 +15,8 @@ const ITEM =
 export default function Navbar() {
   const { logout } = useAuth()
   const navigate = useNavigate()
-  const isHome = useLocation().pathname === '/home' // 홈(현관)에는 큰 아이콘이 있으므로 메뉴 아이콘을 숨긴다
+  const { pathname } = useLocation()
+  const isHome = pathname === '/home' // 홈(현관)에는 큰 아이콘이 있으므로 메뉴 아이콘을 숨긴다
 
   const handleLogout = () => {
     logout()
@@ -38,6 +39,13 @@ export default function Navbar() {
                 key={l.to}
                 to={l.to}
                 aria-label={l.label}
+                onClick={(e) => {
+                  // 이미 /chat 이면 같은 경로라 화면이 유지되므로, 일반 클릭일 때만 첫 화면으로 초기화한다 (새 탭·창 열기 동작은 그대로)
+                  if (l.to !== '/chat' || pathname !== '/chat') return
+                  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                  e.preventDefault()
+                  navigate('/chat', { replace: true, state: { resetKey: Date.now() } })
+                }}
                 className={({ isActive }) =>
                   `${ITEM} ${isActive ? 'text-accent' : 'text-slate-600 hover:text-gem-ink focus-visible:text-gem-ink'}`
                 }
