@@ -8,9 +8,8 @@
 
 | 상태 | STEP |
 |---|---|
-| ✅ 완료 | 0~11, 13 (EC2 내부 smoke 51개 PASS) / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) / PR #1~#6 `main` 병합 (프론트 포함) |
-| 🔜 바로 가능 | C 화면과 로컬 연동 테스트 (STEP 8·12, 프론트 `main` 병합 완료) |
-| ⏳ 팀 대기 | 12 (CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
+| ✅ 완료 | 0~11, 13 (EC2 내부·CloudFront smoke 51개 PASS) / 12 (CloudFront 주소에서 C 화면 브라우저 확인 완료) / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) / PR #1~#6 `main` 병합 (프론트 포함) |
+| ⏳ 팀 대기 | 14 나머지 (EC2 시연 데이터·백업·리허설) |
 | ✔️ 결정됨 | `created_at` 등 UTC 시각은 `Z` 없이 표기 (`docs/api-contract.md`) |
 
 - API 14개 구현 완료, 로컬 스모크 테스트 51개 PASS
@@ -224,7 +223,7 @@ ENABLE_DOCS=true
 - [x] `GET/POST /api/categories` (기본 + 내 카테고리, 중복 409)
 - [x] `get_usable_category` 헬퍼
 - [x] 거래 `GET(month)/POST/PATCH/DELETE`
-- [ ] Swagger로 전 엔드포인트 수동 확인, C의 거래 화면과 로컬 연동 (Vite proxy `/api` → `localhost:8000`)
+- [x] Swagger로 전 엔드포인트 수동 확인, C의 거래 화면과 로컬 연동 (Vite proxy `/api` → `localhost:8000`) — smoke.sh 51개 + CloudFront 브라우저 확인으로 대체
 - [x] A와 EC2에서 venv + 의존성 설치 + `init_db` + systemd 기동 확인 지원
 - 종료 조건: 거래 등록/월별 조회/수정/삭제 동작, 타 계정 거래 404
 
@@ -232,8 +231,8 @@ ENABLE_DOCS=true
 
 - [x] 정기결제 `GET/POST/DELETE` (EXPENSE 카테고리만, 거래 미연동)
 - [x] 대시보드 집계 API (summary / expense_by_category / monthly_compare)
-- [ ] C의 정기결제·차트 화면과 연동, 필드명 불일치 즉시 수정
-- [ ] EC2 배포본 갱신(`git pull` → 재시작) 후 CloudFront `/api/*` 경유 호출 확인 (A와 함께)
+- [x] C의 정기결제·차트 화면과 연동, 필드명 불일치 즉시 수정
+- [x] EC2 배포본 갱신(`git pull` → 재시작) 후 CloudFront `/api/*` 경유 호출 확인 (A와 함께) — `https://d2q1okho7uqgh2.cloudfront.net`
 - [x] `scripts/smoke.sh` 작성 (가입→로그인→거래→정기결제→대시보드 curl 흐름)
 - 종료 조건: 로컬·CloudFront 양쪽에서 핵심 기능 E2E 연결
 
@@ -405,7 +404,7 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
   - 단건은 `id + user_id`로 조회, 없으면 404
   - POST/PATCH 모두 최종 `type`·`category_id` 조합을 `get_usable_category`로 검증
 - [x] 확인: 등록 → 월별 조회(1일·말일 경계) → 수정 → 삭제, 금액 0·유형 불일치 422, 계정 B로 A 거래 수정/삭제 404
-- [ ] C의 거래 화면과 로컬 연동 테스트
+- [x] C의 거래 화면과 로컬 연동 테스트 — CloudFront 주소에서 브라우저로 확인
 - [x] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합
 
 ### STEP 9. EC2 최초 배포 지원 — Day 2 오후
@@ -434,13 +433,13 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 ### STEP 12. CloudFront 경유 E2E 연결 — Day 3 오후
 
 - [ ] EC2에서 `git pull` → `sudo systemctl restart <service>` → `journalctl`로 오류 확인
-- [ ] CloudFront URL로 `/api/health`, 로그인, 거래 등록 확인 (Authorization 헤더 전달 여부)
-- [ ] C와 정기결제·대시보드 화면 연동하며 필드명 불일치 즉시 수정
+- [x] CloudFront URL로 `/api/health`, 로그인, 거래 등록 확인 (Authorization 헤더 전달 여부)
+- [x] C와 정기결제·대시보드 화면 연동하며 필드명 불일치 즉시 수정
 
 ### STEP 13. 수동 테스트 보조 스크립트 — Day 3 종료 전
 
 - [x] `scripts/smoke.sh` — `BASE_URL`을 인자로 받아 가입 → 로그인 → 거래 등록 → 정기결제 등록 → 대시보드 조회를 curl로 실행
-- [ ] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬·EC2 내부 51개 PASS, CloudFront 대기
+- [x] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬·EC2 내부·CloudFront 모두 51개 PASS
 - [x] 커밋: `chore(backend): 스모크 테스트 스크립트`
 
 ### STEP 14. 최종 검증·문서화·시연 준비 — Day 4
