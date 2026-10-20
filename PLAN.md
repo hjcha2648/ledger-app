@@ -5,8 +5,8 @@
 
 | # | 기능 | 한 줄 설명 | 우선순위 | 상태 |
 |---|---|---|---|---|
-| 1 | AI 가계부 챗봇 (0~7장) | 내 가계부 데이터에 대해 자연어로 질문 → Claude(Bedrock)가 답변 | 1 | ✅ 시연 서버 동작 (백엔드 PR #13·#16, 프론트 PR #15), A6 비용 알림만 남음 |
-| 2 | 월간 명세서 이메일 (8장) | 로그인한 사용자 본인 메일로 선택 월 요약·카테고리·거래 내역을 명세서 형태로 발송 (Amazon SES) | 3 | 백엔드·인프라 시연 서버 동작(PR #18, EA3b·EA4), 프론트 EF1~EF4 완료(B 작성), S3 배포 남음 |
+| 1 | AI 가계부 챗봇 (0~7장) | 내 가계부 데이터에 대해 자연어로 질문 → Claude(Bedrock)가 답변 | 1 | ✅ **완료** — 시연 서버 동작 (백엔드 PR #13·#16, 프론트 PR #15). A6 비용 알림은 생략(팀 결정) |
+| 2 | 월간 명세서 이메일 (8장) | 로그인한 사용자 본인 메일로 선택 월 요약·카테고리·거래 내역을 명세서 형태로 발송 (Amazon SES) | 3 | ✅ **시연 서버 반영** — 백엔드 PR #18, 프론트 PR #19(B 작성), S3 배포 완료. 새 가입 계정으로 화면 전체 흐름 수신 확인만 남음 |
 | 3 | 영수증·명세서 인식 (9장) | 영수증/카드 명세서 이미지·PDF 업로드 → Claude가 읽어 거래 입력값을 채움 → 사용자가 확인 후 저장 | 2 | 계획 |
 
 - 우선순위 이유: 3번은 외부 승인 없이 바로 시연 가능하고 효과가 크다. 2번은 SES 샌드박스(인증된 메일 주소로만 발송) 제약과 스팸함 분류 위험이 있다.
@@ -107,7 +107,7 @@
 | A3 | EC2에서 Bedrock 호출 확인 (B가 준 1줄 테스트 스크립트) | 응답 수신 |
 | A4 | `/etc/ledger/backend.env`에 `CHAT_ENABLED=true`, `BEDROCK_REGION=ap-northeast-2`, `BEDROCK_MODEL_ID=global.anthropic.claude-opus-5-5` 추가 → `git pull` → `pip install -r backend/requirements.txt` → `sudo systemctl restart ledger-api` | `/api/health` 정상, 챗봇 응답 |
 | A5 | CloudFront `/api/*` 원본의 **응답 제한 시간 30초 → 60초** (모델 응답이 30초를 넘길 수 있음) | 긴 답변도 504 없음 |
-| A6 | AWS Budgets에 Bedrock 포함 비용 알림(예: 월 $10) | 알림 메일 수신 설정 |
+| A6 | ~~AWS Budgets에 Bedrock 포함 비용 알림(예: 월 $10)~~ **생략 (10/20 팀 결정)**: 프로젝트 종료 후 리소스를 삭제한다(PLAN-infra.md T20). 공용 계정이라 계정 예산은 다른 사용자 비용도 합산됨 | — |
 | A7 | 시연 후 IAM 역할 정리·모델 액세스 정리 계획을 PLAN-infra.md 20번(T20)에 추가 | — |
 
 - 액세스 키를 EC2에 저장하지 않는다 (인스턴스 역할만 사용).
@@ -129,12 +129,12 @@
 
 ## 6. 완료 기준 (DoD)
 
-- [ ] CloudFront 주소에서 로그인 → 챗봇 질문 → 내 데이터 기반 답변
-- [ ] 계정 B의 질문에 계정 A의 데이터가 나오지 않는다
-- [ ] 토큰 없이 401, 잘못된 요청 422, 연속 호출 429
-- [ ] `CHAT_ENABLED=false`면 503이고, 나머지 화면·smoke 51개는 그대로 PASS
-- [ ] AWS 액세스 키가 코드·Git·환경 파일 어디에도 없다 (EC2는 IAM 역할)
-- [ ] Bedrock 비용 알림 설정
+- [x] CloudFront 주소에서 로그인 → 챗봇 질문 → 내 데이터 기반 답변 (10/20, 팁·범위 밖 질문 안내 포함)
+- [x] 계정 B의 질문에 계정 A의 데이터가 나오지 않는다 (데이터 없는 계정에 "넷플릭스" 질문 → 없다고 답함)
+- [x] 토큰 없이 401, 잘못된 요청 422, 연속 호출 429
+- [x] `CHAT_ENABLED=false`면 503이고, 나머지 화면·smoke는 그대로 PASS
+- [x] AWS 액세스 키가 코드·Git·환경 파일 어디에도 없다 (EC2는 IAM 역할 `ledger-ec2-role`)
+- [ ] ~~Bedrock 비용 알림 설정~~ 생략 (A6 참고)
 
 ## 7. 리스크
 
@@ -189,6 +189,8 @@
 
 ## 8.3 프론트엔드 (C)
 
+- 진행 (10/20, B): EF1~EF4 모두 B가 작성(`components/MonthlyEmailDialog.jsx`, `api/reports.js`), 목 모드 브라우저 테스트·시연 주소 화면 확인, PR #19 병합·S3 배포 완료
+
 | # | 작업 | 완료 기준 |
 |---|---|---|
 | EF1 | 대시보드에 **"이 달 명세서 메일로 받기"** 버튼 (선택 중인 월 기준) | 버튼 → API 호출 |
@@ -200,18 +202,18 @@
 
 | # | 작업 | 완료 기준 |
 |---|---|---|
-| EA1 | SES(서울 리전) → **자격 증명 생성** → 보내는 주소 이메일 인증 | "확인됨" |
-| EA2 | 샌드박스 수신자 인증 — 팀원 3명 + 시연 계정에 쓸 메일 주소를 각각 SES 자격 증명으로 추가·인증 | 각 주소 "확인됨" |
-| EA3 | EC2 IAM 역할(기능 1의 A2)에 `ses:SendEmail` 추가, 대상은 보내는 주소 identity ARN으로 한정 | EC2에서 발송 성공 |
-| EA3b | **(E7용 추가)** 같은 역할에 `ses:GetAccount`(리소스 `*`), `ses:GetEmailIdentity`·`ses:CreateEmailIdentity`(리소스 `arn:aws:ses:ap-northeast-2:<계정ID>:identity/*`) 추가. **`ses:DeleteEmailIdentity`는 주지 않는다**(발신 도메인 보호) | 페이지에서 인증 메일 요청 성공 |
-| EA4 | 환경 파일에 `EMAIL_ENABLED=true`, `SES_REGION=ap-northeast-2`, `SES_SENDER=<인증한 주소>` 추가 → 재시작 | CloudFront 주소에서 버튼 → 메일 수신 |
+| EA1 | ✅ SES(서울 리전) → **자격 증명 생성** → 보내는 주소 이메일 인증 — A: 도메인 `lsj.mzsec.cloud` 인증(DKIM·DMARC), 발신 `noreply@lsj.mzsec.cloud` | "확인됨" |
+| EA2 | 🔶 샌드박스 수신자 인증 — 페이지 내 인증(E7)으로 대체 가능. 인증됨: `ddorong03047@gmail.com`(A), `hjcha2648@gmail.com`(B) | 각 주소 "확인됨" |
+| EA3 | ✅ EC2 IAM 역할(기능 1의 A2)에 `ses:SendEmail` 추가, 대상은 보내는 주소 identity ARN으로 한정 — A: 인라인 정책 `ledger-ses-send` | EC2에서 발송 성공 |
+| EA3b | ✅ (10/20, B: 인라인 정책 `ledger-ses-verify`) **(E7용 추가)** 같은 역할에 `ses:GetAccount`(리소스 `*`), `ses:GetEmailIdentity`·`ses:CreateEmailIdentity`(리소스 `arn:aws:ses:ap-northeast-2:<계정ID>:identity/*`) 추가. **`ses:DeleteEmailIdentity`는 주지 않는다**(발신 도메인 보호) | 페이지에서 인증 메일 요청 성공 |
+| EA4 | ✅ (10/20, B) 환경 파일에 `EMAIL_ENABLED=true`, `SES_REGION=ap-northeast-2`, `SES_SENDER=<인증한 주소>` 추가 → 재시작 | CloudFront 주소에서 버튼 → 메일 수신 |
 | EA5 | (선택) 프로덕션 접근 요청 — 승인되면 미인증 주소로도 발송 가능 | — |
 
 ## 8.5 완료 기준 / 리스크
 
 - [ ] CloudFront 주소에서 버튼 → 본인(인증된) 메일로 선택 월 명세서 수신, 금액이 대시보드와 일치
-- [ ] 다른 사용자 데이터가 섞이지 않고, 받는 주소를 요청으로 바꿀 수 없다
-- [ ] 5분 내 재요청 429, `EMAIL_ENABLED=false`면 503, AWS 키 없음(IAM 역할)
+- [x] 다른 사용자 데이터가 섞이지 않고, 받는 주소를 요청으로 바꿀 수 없다 (JWT 사용자 주소 고정, 입력 필드 없음)
+- [x] 5분 내 재요청 429(CloudFront 확인), `EMAIL_ENABLED=false`면 503, AWS 키 없음(IAM 역할)
 
 | 리스크 | 대응 |
 |---|---|
@@ -304,6 +306,12 @@
 | 응답 지연·비용 | 분당 5회 제한, 파일 1개·5MB·30건 제한, Budgets 알림(기능 1의 A6) |
 
 ---
+
+# 운영 작업 기록 (10/20)
+
+- DB 백업·복원 검증 (PLAN-infra.md T18): `~/backup/ledger_db_20261020_0655.sql` → 별도 DB 복원 → 사용자 6·카테고리 15·거래 172·정기결제 4·금액 합계 일치 → 테스트 DB 삭제. 시연 데이터 정리 후·시연 당일 아침에 다시 백업
+- 시연 서버 계정 정리: `hjcha2648@gmail.com`(데이터 0건) 삭제 → 재가입 가능
+- 시연 전 남은 정리: smoke 계정 2개, demo 계정 12원 테스트 거래 1건, 시연용 계정 준비(`+` 주소 Gmail 권장, 메일 인증)
 
 # 전체 일정 (3개 기능)
 
