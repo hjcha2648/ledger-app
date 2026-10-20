@@ -14,7 +14,7 @@
 | PRD 반영 | PRD에 챗봇 절 추가(범위·제외 사항) | B | [ ] |
 | 모델 | 기본 `anthropic.claude-opus-5-5`. 비용·속도를 우선하면 Sonnet 5.5 / Haiku 5.5로 바꿀 수 있다 (`BEDROCK_MODEL_ID` 환경 변수로만 교체) | 팀 | [ ] |
 | 리전 | `ap-northeast-2`에서 해당 모델을 쓸 수 있는지 Bedrock 콘솔에서 확인. 없으면 지원 리전 또는 inference profile 사용 | A | [ ] |
-| 확인 결과 (10/20, B) | 서울 리전 목록: Opus 5.5·Haiku 5.5·Sonnet 5.5는 **`global.anthropic.claude-*` inference profile로만** 있음. 서울·미국 리전 모두 실제 호출은 404 → **모델 액세스 미승인으로 추정, A1이 먼저 필요**. 승인 후 `BEDROCK_MODEL_ID`에 쓸 정확한 ID를 A가 확인해 B에게 전달 | A·B | [ ] |
+| 확인 결과 (10/20, B) | ✅ 해결. 모델 액세스는 이미 승인돼 있었음. 서울 리전은 **Bedrock Runtime 경로 + global inference profile ID**로만 호출된다: `BEDROCK_MODEL_ID=global.anthropic.claude-opus-5-5` (리전 없는 `anthropic.claude-opus-5-5`는 400, Mantle 엔드포인트는 404). 로컬에서 실제 답변 확인(3~6초) | A·B | [x] |
 | 마감선 | **Day 3(10/21) 종료까지 EC2·CloudFront에서 동작하지 않으면 Day 4에는 `CHAT_ENABLED=false`로 끄고 시연** (Day 4 오전은 신규 기능 금지 규칙 유지) | 전원 | — |
 
 ### 범위 (MVP)
@@ -68,6 +68,7 @@
 | B8 | `main.py`에 라우터 등록, `docs/api-contract.md`·README·`docs/backend-summary.md` 갱신 | C가 문서만 보고 붙일 수 있음 |
 | B9 | `smoke.sh`에 401·422 확인 추가 (실제 모델 호출은 비용 때문에 smoke에서 제외, 수동 1회 확인) | 기존 51개 + 추가 항목 PASS |
 
+- 진행 (10/20, B): B1~B9 로컬 구현·확인 완료 — 401·422·429·503 동작, 실제 답변 확인, smoke 53개 PASS(챗봇 2개 추가). `anthropic[bedrock]` 사용, `aws login` 자격 증명으로 로컬 개발 시 `pip install "botocore[crt]"` 추가 필요(EC2 IAM 역할은 불필요)
 - AWS 액세스 키를 코드·`.env`에 넣지 않는다. 로컬은 개인 `aws login` 자격 증명, EC2는 인스턴스 역할(IAM Role)을 SDK가 자동으로 쓴다.
 - 대화 내용은 DB나 로그에 남기지 않는다 (오류 로그에는 요청 ID·상태 코드만).
 
@@ -92,9 +93,9 @@
 | # | 작업 | 완료 기준 |
 |---|---|---|
 | A1 | Bedrock 콘솔 → **모델 액세스**에서 선택한 Claude 모델 사용 요청 (Anthropic 모델은 최초 1회 사용 목적 양식 필요할 수 있음), 리전 확인 | 콘솔에서 "액세스 권한 부여됨" |
-| A2 | IAM 역할 생성 → EC2 인스턴스에 연결. 권한은 Bedrock 모델 호출만, 대상은 사용할 모델(또는 inference profile) ARN으로 한정 | EC2에서 `aws sts get-caller-identity`가 역할로 나옴 |
+| A2 | IAM 역할 생성 → EC2 인스턴스에 연결. 권한은 `bedrock:InvokeModel`만. global inference profile은 여러 리전으로 요청을 보내므로 대상 ARN 두 종류가 모두 필요: `arn:aws:bedrock:ap-northeast-2:<계정ID>:inference-profile/global.anthropic.claude-opus-5-5`(·`-4-8`), `arn:aws:bedrock:*::foundation-model/anthropic.claude-opus-5-5`(·`-4-8`) | EC2에서 `aws sts get-caller-identity`가 역할로 나옴 |
 | A3 | EC2에서 Bedrock 호출 확인 (B가 준 1줄 테스트 스크립트) | 응답 수신 |
-| A4 | `/etc/ledger/backend.env`에 `CHAT_ENABLED`, `BEDROCK_REGION`, `BEDROCK_MODEL_ID` 추가 → `git pull` → `pip install -r backend/requirements.txt` → `sudo systemctl restart ledger-api` | `/api/health` 정상, 챗봇 응답 |
+| A4 | `/etc/ledger/backend.env`에 `CHAT_ENABLED=true`, `BEDROCK_REGION=ap-northeast-2`, `BEDROCK_MODEL_ID=global.anthropic.claude-opus-5-5` 추가 → `git pull` → `pip install -r backend/requirements.txt` → `sudo systemctl restart ledger-api` | `/api/health` 정상, 챗봇 응답 |
 | A5 | CloudFront `/api/*` 원본의 **응답 제한 시간 30초 → 60초** (모델 응답이 30초를 넘길 수 있음) | 긴 답변도 504 없음 |
 | A6 | AWS Budgets에 Bedrock 포함 비용 알림(예: 월 $10) | 알림 메일 수신 설정 |
 | A7 | 시연 후 IAM 역할 정리·모델 액세스 정리 계획을 PLAN-infra.md 20번(T20)에 추가 | — |
