@@ -5,8 +5,8 @@
 
 | # | 기능 | 한 줄 설명 | 우선순위 | 상태 |
 |---|---|---|---|---|
-| 1 | AI 가계부 챗봇 (0~7장) | 내 가계부 데이터에 대해 자연어로 질문 → Claude(Bedrock)가 답변 | 1 | 백엔드 완료(PR #13), 프론트·배포 진행 |
-| 2 | 월간 명세서 이메일 (8장) | 로그인한 사용자 본인 메일로 선택 월 요약·카테고리·거래 내역을 명세서 형태로 발송 (Amazon SES) | 3 | 계획 |
+| 1 | AI 가계부 챗봇 (0~7장) | 내 가계부 데이터에 대해 자연어로 질문 → Claude(Bedrock)가 답변 | 1 | ✅ 시연 서버 동작 (백엔드 PR #13·#16, 프론트 PR #15), A6 비용 알림만 남음 |
+| 2 | 월간 명세서 이메일 (8장) | 로그인한 사용자 본인 메일로 선택 월 요약·카테고리·거래 내역을 명세서 형태로 발송 (Amazon SES) | 3 | 백엔드 완료(E1~E4·E6), 프론트·EA2·EA4 남음 |
 | 3 | 영수증·명세서 인식 (9장) | 영수증/카드 명세서 이미지·PDF 업로드 → Claude가 읽어 거래 입력값을 채움 → 사용자가 확인 후 저장 | 2 | 계획 |
 
 - 우선순위 이유: 3번은 외부 승인 없이 바로 시연 가능하고 효과가 크다. 2번은 SES 샌드박스(인증된 메일 주소로만 발송) 제약과 스팸함 분류 위험이 있다.
@@ -185,6 +185,8 @@
 | E5 | (선택) `python -m app.send_monthly_reports --month 2026-10` — 전체 사용자 일괄 발송 스크립트, EC2 systemd timer로 매월 1일 실행 | 시간 남을 때만 |
 | E6 | API 계약·README 갱신, smoke에 401·422만 추가(실제 발송 제외) | smoke PASS |
 
+- 진행 (10/20, B): E1~E4·E6 로컬 구현·확인 완료. 발신 주소 `noreply@lsj.mzsec.cloud`(A가 도메인 인증, 표시 이름 "가계부"), SES 메일박스 시뮬레이터로 실제 발송 202, 5분 재요청 429, 샌드박스 미인증 주소(`demo@example.com`) 503(`MessageRejected`, 실패 시 재요청 제한 해제), smoke 56개 PASS. E5(자동 발송)는 하지 않음. **E7(추가, 10/20): 페이지 내 받는 주소 인증** — 샌드박스 대응으로 `GET /api/reports/email-status`, `POST /api/reports/email-verification`(본인 주소를 SES에 등록 → AWS 영어 인증 메일), 미인증 주소로 발송 시 409. `hjcha2648@gmail.com`으로 실제 수신 확인. 환경 변수는 `.env.example` 참고(`EMAIL_ENABLED`, `SES_REGION`, `SES_SENDER`, `EMAIL_COOLDOWN_SECONDS`)
+
 ## 8.3 프론트엔드 (C)
 
 | # | 작업 | 완료 기준 |
@@ -192,6 +194,7 @@
 | EF1 | 대시보드에 **"이 달 명세서 메일로 받기"** 버튼 (선택 중인 월 기준) | 버튼 → API 호출 |
 | EF2 | 확인 창: "u***@gmail.com 으로 2026년 10월 명세서를 보냅니다" → 보내기 | 실수 발송 방지 |
 | EF3 | 결과 안내: 202 "메일을 보냈어요(스팸함도 확인)", 429 "잠시 후 다시", 503 "지금은 메일을 보낼 수 없어요" | 각 상태 문구 |
+| EF4 | **메일 인증 흐름**(api-contract "받는 주소 메일 인증"): 버튼 → `email-status` 확인 → `unverified`면 "인증 메일 보내기", `pending`이면 "AWS 인증 링크를 눌러 주세요" + [인증했어요] 다시 확인, 409 받으면 같은 흐름 | 새로 가입한 계정이 페이지 안에서 인증 후 수신 |
 
 ## 8.4 AWS (A)
 
@@ -200,6 +203,7 @@
 | EA1 | SES(서울 리전) → **자격 증명 생성** → 보내는 주소 이메일 인증 | "확인됨" |
 | EA2 | 샌드박스 수신자 인증 — 팀원 3명 + 시연 계정에 쓸 메일 주소를 각각 SES 자격 증명으로 추가·인증 | 각 주소 "확인됨" |
 | EA3 | EC2 IAM 역할(기능 1의 A2)에 `ses:SendEmail` 추가, 대상은 보내는 주소 identity ARN으로 한정 | EC2에서 발송 성공 |
+| EA3b | **(E7용 추가)** 같은 역할에 `ses:GetAccount`(리소스 `*`), `ses:GetEmailIdentity`·`ses:CreateEmailIdentity`(리소스 `arn:aws:ses:ap-northeast-2:<계정ID>:identity/*`) 추가. **`ses:DeleteEmailIdentity`는 주지 않는다**(발신 도메인 보호) | 페이지에서 인증 메일 요청 성공 |
 | EA4 | 환경 파일에 `EMAIL_ENABLED=true`, `SES_REGION=ap-northeast-2`, `SES_SENDER=<인증한 주소>` 추가 → 재시작 | CloudFront 주소에서 버튼 → 메일 수신 |
 | EA5 | (선택) 프로덕션 접근 요청 — 승인되면 미인증 주소로도 발송 가능 | — |
 
