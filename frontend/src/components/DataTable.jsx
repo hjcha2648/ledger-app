@@ -29,8 +29,11 @@ export default function DataTable({ columns, children, minWidth = 'min-w-[640px]
   )
 }
 
-export function Tr({ children }) {
-  return <tr className="transition-colors duration-150 hover:bg-slate-50/70">{children}</tr>
+// tone: 거래 페이지의 요약 칩 호버 연동용. 'income'|'expense' = 해당 색 배경으로 강조, 'dim' = 흐리게
+const TR_TONE = { income: 'bg-income/10 hover:bg-income/15', expense: 'bg-expense/10 hover:bg-expense/15', dim: 'opacity-40' }
+
+export function Tr({ children, tone }) {
+  return <tr className={`transition duration-150 ${TR_TONE[tone] ?? 'hover:bg-slate-50/70'}`}>{children}</tr>
 }
 
 export function Td({ children, align, className = '' }) {

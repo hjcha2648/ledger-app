@@ -8,7 +8,7 @@ import ErrorMessage from '../components/ui/ErrorMessage'
 import Icon from '../components/ui/Icon'
 import Spinner from '../components/ui/Spinner'
 import { formatKRW } from '../utils/format'
-import { currentMonth } from '../utils/month'
+import { currentMonth, shiftMonth } from '../utils/month'
 
 const TONES = {
   income: { badge: 'bg-income/10 text-income-ink', value: 'text-income-ink' },
@@ -47,6 +47,7 @@ function ChartCard({ title, description, children }) {
 export default function DashboardPage() {
   const [month, setMonth] = useState(currentMonth)
   const [data, setData] = useState(null)
+  const [prevCategories, setPrevCategories] = useState(null) // 지난달 카테고리별 지출. 조회 실패 시 null
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -64,10 +65,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false
-    getDashboard(month)
-      .then((d) => !cancelled && setData(d))
-      .catch((err) => !cancelled && setError(err.message))
-      .finally(() => !cancelled && setLoading(false))
+    // 이번 달과 지난달을 병렬 조회. 지난달만 실패하면 조용히 null 로 두고, 이번 달 실패만 오류로 다룬다.
+    // cancelled 플래그로 월을 바꾼 뒤 늦게 도착한 이전 응답은 버린다.
+    Promise.allSettled([getDashboard(month), getDashboard(shiftMonth(month, -1))]).then(([cur, prev]) => {
+      if (cancelled) return
+      if (cur.status === 'fulfilled') {
+        setData(cur.value)
+        setPrevCategories(prev.status === 'fulfilled' ? prev.value.expense_by_category : null)
+      } else {
+        setError(cur.reason?.message ?? '대시보드를 불러오지 못했습니다.')
+      }
+      setLoading(false)
+    })
     return () => {
       cancelled = true
     }
@@ -112,9 +121,9 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <ChartCard title="카테고리별 지출" description="선택한 달의 지출 비율">
-              <CategoryPieChart data={data.expense_by_category} />
+          <div className="space-y-5">
+            <ChartCard title="카테고리별 지출" description="선택한 달의 지출 비율과 지난달 비교">
+              <CategoryPieChart data={data.expense_by_category} prevData={prevCategories} />
             </ChartCard>
             <ChartCard title="최근 6개월 수입·지출" description="선택한 달까지의 월별 비교">
               <MonthlyBarChart data={data.monthly_compare} />
