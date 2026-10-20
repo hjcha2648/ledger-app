@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Bar, CartesianGrid, ComposedChart, LabelList, Line, Rectangle, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import useMediaQuery from '../../hooks/useMediaQuery'
 import useReducedMotion from '../../hooks/useReducedMotion'
 import { formatCompactKRW, formatKRW, formatMonthShort } from '../../utils/format'
 import { formatMonthLabel } from '../../utils/month'
@@ -53,6 +54,9 @@ function MonthTooltip({ active, payload, label, hidden }) {
 export default function MonthlyBarChart({ data }) {
   const reduced = useReducedMotion()
   const [hoverIdx, setHoverIdx] = useState(null)
+  // 좌우 가장자리 여백을 넓혀 그래프(월별 막대 묶음)끼리 더 붙어 보이게 한다. 좁은 화면(375px)에서는 묶음이 겹치지 않도록 늘리지 않는다.
+  const wide = useMediaQuery('(min-width: 640px)')
+  const edge = wide ? 48 : 0 // 축 안쪽 여백(첫·끝 막대 묶음과 가장자리 사이)
   const [hidden, setHidden] = useState({ income_krw: false, expense_krw: false })
   const [mode, setMode] = useState('both') // 'bar' | 'line' | 'both' (저장하지 않는 화면 상태)
   const showBars = mode !== 'line'
@@ -138,7 +142,7 @@ export default function MonthlyBarChart({ data }) {
           <ComposedChart
             data={data}
             barGap={2}
-            margin={{ top: 20, right: 8, left: 0, bottom: 0 }}
+            margin={{ top: 20, right: wide ? 28 : 8, left: wide ? 12 : 0, bottom: 0 }}
             onMouseMove={(state) => {
               const i = state?.activeTooltipIndex
               setHoverIdx(i == null || i === '' ? null : Number(i))
@@ -147,6 +151,7 @@ export default function MonthlyBarChart({ data }) {
           >
             <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 4" />
             <XAxis
+              padding={{ left: edge, right: edge }}
               dataKey="month"
               tickLine={false}
               axisLine={{ stroke: '#e2e8f0' }}
