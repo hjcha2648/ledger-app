@@ -132,14 +132,14 @@ python -m app.seed_demo --email demo@example.com --password '<...>' --reset   # 
 ### 5. EC2 배포 (백엔드 부분)
 
 ```bash
-cd ~/ledger-app && git pull origin main
+cd ~/vibe-lab/ledger-app && git pull origin main
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 cd backend
 python -m app.init_db                  # 최초 1회 또는 테이블 추가 시
-sudo systemctl restart <service-name>
-sudo systemctl status <service-name>
-journalctl -u <service-name> -n 100 --no-pager
+sudo systemctl restart ledger-api
+sudo systemctl status ledger-api
+journalctl -u ledger-api -n 100 --no-pager
 curl http://127.0.0.1:8000/api/health
 ./scripts/smoke.sh http://127.0.0.1:8000
 ```
@@ -148,7 +148,7 @@ curl http://127.0.0.1:8000/api/health
 - 운영에서는 `ENABLE_DOCS=false`, `CORS_ORIGINS` 비움 (CloudFront 같은 도메인)
 - DB 비밀번호·JWT 키는 로컬과 다른 강한 값 사용
 
-systemd 유닛 예시 (경로·서비스명은 인프라 확정값으로 교체):
+systemd 유닛 (`/etc/systemd/system/ledger-api.service`, 경로는 PLAN-infra.md 2.2 확정값):
 
 ```ini
 [Unit]
@@ -158,9 +158,9 @@ Requires=mariadb.service
 
 [Service]
 User=ubuntu
-WorkingDirectory=/home/ubuntu/ledger-app/backend
+WorkingDirectory=/home/ubuntu/vibe-lab/ledger-app/backend
 EnvironmentFile=/etc/ledger/backend.env
-ExecStart=/home/ubuntu/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
+ExecStart=/home/ubuntu/vibe-lab/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
 Restart=always
 
 [Install]
@@ -188,4 +188,4 @@ WantedBy=multi-user.target
 | 루트(`/`) 접속 시 `{"detail":"Not Found"}` | 정상. API는 `/api/*`만 존재 |
 | 모든 요청이 401 | 토큰 만료(60분) 또는 서버의 `JWT_SECRET_KEY` 변경 → 다시 로그인 |
 | CloudFront에서 API 404가 HTML로 옴 | 사용자 지정 오류 응답(→ `index.html`)이 `/api/*`에도 적용됨 → 설정 분리 |
-| 500 응답 | `journalctl -u <service-name>`에서 `Unhandled error` 로그 확인 |
+| 500 응답 | `journalctl -u ledger-api`에서 `Unhandled error` 로그 확인 |
