@@ -14,6 +14,7 @@
 | PRD 반영 | PRD에 챗봇 절 추가(범위·제외 사항) | B | [ ] |
 | 모델 | 기본 `anthropic.claude-opus-5-5`. 비용·속도를 우선하면 Sonnet 5.5 / Haiku 5.5로 바꿀 수 있다 (`BEDROCK_MODEL_ID` 환경 변수로만 교체) | 팀 | [ ] |
 | 리전 | `ap-northeast-2`에서 해당 모델을 쓸 수 있는지 Bedrock 콘솔에서 확인. 없으면 지원 리전 또는 inference profile 사용 | A | [ ] |
+| 확인 결과 (10/20, B) | 서울 리전 목록: Opus 5.5·Haiku 5.5·Sonnet 5.5는 **`global.anthropic.claude-*` inference profile로만** 있음. 서울·미국 리전 모두 실제 호출은 404 → **모델 액세스 미승인으로 추정, A1이 먼저 필요**. 승인 후 `BEDROCK_MODEL_ID`에 쓸 정확한 ID를 A가 확인해 B에게 전달 | A·B | [ ] |
 | 마감선 | **Day 3(10/21) 종료까지 EC2·CloudFront에서 동작하지 않으면 Day 4에는 `CHAT_ENABLED=false`로 끄고 시연** (Day 4 오전은 신규 기능 금지 규칙 유지) | 전원 | — |
 
 ### 범위 (MVP)
