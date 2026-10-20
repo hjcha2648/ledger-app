@@ -192,7 +192,7 @@ export default function TransactionsPage() {
             <Select
               aria-label="카테고리별 보기"
               className="w-full sm:w-auto"
-              fieldClassName="h-[2.625rem] min-w-[10.5rem] rounded-full pr-10 pl-4 whitespace-nowrap"
+              fieldClassName="h-[2.625rem] min-w-[10.5rem] rounded-full pr-10 pl-4 whitespace-nowrap focus:border-slate-400 focus:bg-white focus:ring-0"
               value={activeCat == null ? '' : String(activeCat)}
               onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
               options={[
