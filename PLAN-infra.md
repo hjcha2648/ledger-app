@@ -47,7 +47,7 @@
 | SSH 접속 방식 | 팀 고정 IP만 허용(22) 또는 SSM Session Manager(22 닫음) | Day 1 | `docs/ai-infra.md`는 "내 IP만". 팀원이 함께 접속하면 IP 추가 또는 SSM — **확인 필요** |
 | 앱 포트 | 80번은 일반 사용자 권한으로 못 쓰므로 8000 같은 비특권 포트 | Day 1 | **8000** (`docs/ai-infra.md`) |
 | 서비스명 | 예: `ledger-api` | Day 1 | **`ledger-api`** (`docs/ai-infra.md`) |
-| 프로젝트·환경 파일 경로 | 홈 디렉터리 하위의 프로젝트 폴더, 환경 파일은 권한 600 | Day 1 | 프로젝트 `/home/ubuntu/ledger-app`(실행 디렉터리 `backend/`, venv `.venv/`), 환경 파일 `/etc/ledger/backend.env` 권한 600 (`docs/ai-infra.md`) |
+| 프로젝트·환경 파일 경로 | 홈 디렉터리 하위의 프로젝트 폴더, 환경 파일은 권한 600 | Day 1 | 프로젝트 `/home/ubuntu/vibe-lab/ledger-app`(실행 디렉터리 `backend/`, venv `.venv/`), 환경 파일 `/etc/ledger/backend.env` 권한 600 — 시연 EC2 `i-02195e4dee3318216`에 이 경로로 배치함 |
 | 고정 주소 | Elastic IP를 붙여 재시작 후에도 CloudFront 원본 주소가 바뀌지 않게 함. 과금 여부 확인 | Day 1 | 미정 |
 | 원본 프로토콜 | CloudFront→EC2는 HTTP(도메인·인증서가 없으면 HTTPS 불가). 한계를 README에 명시 | Day 2 | 미정 |
 | DB 이름·앱 계정 이름 | PRD 예시 기준 `ledger_db`, `app_user` | Day 1 | **`ledger_db`, `app_user`** (`localhost`·`127.0.0.1` 두 계정, `docs/ai-infra.md`·`docs/db-design.md`) |
@@ -139,11 +139,11 @@
 
 #### T09 — 테이블 생성·시드
 (테이블 정의·제약: `docs/db-design.md` 3~4장)
-- [ ] `cd backend && set -a && . /etc/ledger/backend.env && set +a && python -m app.init_db` → `default categories added: 13` (재실행 시 0)
+- [x] `cd backend && set -a && . /etc/ledger/backend.env && set +a && python -m app.init_db` → `default categories added: 13` (재실행 시 0)
 - [ ] `db/01_schema_reference.sql`과 `SHOW CREATE TABLE` 비교(`docs/db-design.md` 4장)
 
 #### T10 — systemd 서비스
-- [ ] 서비스 작성·등록·시작 (6장 기준)
+- [x] 서비스 작성·등록·시작 (6장 기준)
 - [ ] `curl http://127.0.0.1:8000/api/health` → `{"status":"ok","db":"ok"}` (DB 실패 시 503), 보안 그룹을 통한 외부 접근 확인
 - [ ] 재시작 후 자동 기동 확인
 
@@ -253,10 +253,10 @@
 | 항목 | 설정 |
 |---|---|
 | 실행 사용자 | `ubuntu`(root 아님) |
-| 작업 디렉터리 | `/home/ubuntu/ledger-app/backend` (여기서 실행해야 `app` 패키지를 찾음) |
+| 작업 디렉터리 | `/home/ubuntu/vibe-lab/ledger-app/backend` (여기서 실행해야 `app` 패키지를 찾음) |
 | 환경 | `EnvironmentFile=/etc/ledger/backend.env`(따옴표 없이 `KEY=VALUE`, 권한 600) |
 | 시작 순서 | `After=network.target mariadb.service`, `Requires=mariadb.service` |
-| 실행 명령 | `/home/ubuntu/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers` |
+| 실행 명령 | `/home/ubuntu/vibe-lab/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers` |
 | 재시작 | `Restart=always`, `RestartSec=3` |
 | 자동 시작 | `WantedBy=multi-user.target`, `systemctl enable --now ledger-api` |
 

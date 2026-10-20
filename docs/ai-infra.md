@@ -70,9 +70,9 @@ Requires=mariadb.service
 
 [Service]
 User=ubuntu
-WorkingDirectory=/home/ubuntu/ledger-app/backend
+WorkingDirectory=/home/ubuntu/vibe-lab/ledger-app/backend
 EnvironmentFile=/etc/ledger/backend.env
-ExecStart=/home/ubuntu/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
+ExecStart=/home/ubuntu/vibe-lab/ledger-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
 Restart=always
 RestartSec=3
 
@@ -108,7 +108,7 @@ sudo mariadb -e "SELECT COUNT(*) FROM ledger_restore_test.transactions; DROP DAT
 ## 배포 갱신 (코드 변경 시)
 
 ```bash
-cd ~/ledger-app && git pull origin main
+cd ~/vibe-lab/ledger-app && git pull origin main
 source .venv/bin/activate && pip install -r backend/requirements.txt
 sudo systemctl restart ledger-api
 journalctl -u ledger-api -n 100 --no-pager

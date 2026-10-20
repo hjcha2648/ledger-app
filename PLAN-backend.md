@@ -8,9 +8,9 @@
 
 | 상태 | STEP |
 |---|---|
-| ✅ 완료 | 0~8, 10, 11, 13 / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) / PR #1~#6 `main` 병합 (프론트 포함) |
+| ✅ 완료 | 0~11, 13 (EC2 내부 smoke 51개 PASS) / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) / PR #1~#6 `main` 병합 (프론트 포함) |
 | 🔜 바로 가능 | C 화면과 로컬 연동 테스트 (STEP 8·12, 프론트 `main` 병합 완료) |
-| ⏳ 팀 대기 | 9·12 (EC2·CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
+| ⏳ 팀 대기 | 12 (CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
 | ✔️ 결정됨 | `created_at` 등 UTC 시각은 `Z` 없이 표기 (`docs/api-contract.md`) |
 
 - API 14개 구현 완료, 로컬 스모크 테스트 51개 PASS
@@ -24,7 +24,7 @@
 - [x] 다른 사용자의 거래·정기결제·카테고리는 조회·수정·삭제 시 **404**.
 - [x] 대시보드는 `transactions`만 집계한다 (정기결제 금액 미포함).
 - [x] `python -m app.init_db` 한 번으로 테이블 생성 + 기본 카테고리 시드가 끝난다 (여러 번 실행해도 안전).
-- [ ] 로컬(WSL MariaDB)과 EC2(내부 MariaDB) 양쪽에서 `.env`만 바꿔 동일하게 실행된다. — 로컬 완료, EC2 대기
+- [x] 로컬(WSL MariaDB)과 EC2(내부 MariaDB) 양쪽에서 `.env`만 바꿔 동일하게 실행된다.
 
 ---
 
@@ -225,7 +225,7 @@ ENABLE_DOCS=true
 - [x] `get_usable_category` 헬퍼
 - [x] 거래 `GET(month)/POST/PATCH/DELETE`
 - [ ] Swagger로 전 엔드포인트 수동 확인, C의 거래 화면과 로컬 연동 (Vite proxy `/api` → `localhost:8000`)
-- [ ] A와 EC2에서 venv + 의존성 설치 + `init_db` + systemd 기동 확인 지원
+- [x] A와 EC2에서 venv + 의존성 설치 + `init_db` + systemd 기동 확인 지원
 - 종료 조건: 거래 등록/월별 조회/수정/삭제 동작, 타 계정 거래 404
 
 ### Day 3 — 정기결제 + 대시보드 + E2E
@@ -410,10 +410,10 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 
 ### STEP 9. EC2 최초 배포 지원 — Day 2 오후
 
-- [ ] A와 함께 EC2에서 `git clone/pull` → venv → `pip install -r backend/requirements.txt`
-- [ ] EC2 환경 파일 값 확인 (A가 입력), `python -m app.init_db` 실행
-- [ ] systemd 기동 후 EC2 내부에서 `curl http://127.0.0.1:8000/api/health` 확인
-- [ ] 의존성 설치·Python 버전 문제 있으면 `requirements.txt` 수정
+- [x] A와 함께 EC2에서 `git clone/pull` → venv → `pip install -r backend/requirements.txt` — 실제 경로 `/home/ubuntu/vibe-lab/ledger-app`
+- [x] EC2 환경 파일 값 확인 (A가 입력), `python -m app.init_db` 실행
+- [x] systemd 기동 후 EC2 내부에서 `curl http://127.0.0.1:8000/api/health` 확인
+- [x] 의존성 설치·Python 버전 문제 있으면 `requirements.txt` 수정 — 문제 없음 (Python 3.14.4)
 
 ### STEP 10. 정기결제 C/R/D — Day 3 오전
 
@@ -440,7 +440,7 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 ### STEP 13. 수동 테스트 보조 스크립트 — Day 3 종료 전
 
 - [x] `scripts/smoke.sh` — `BASE_URL`을 인자로 받아 가입 → 로그인 → 거래 등록 → 정기결제 등록 → 대시보드 조회를 curl로 실행
-- [ ] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬 51개 PASS, CloudFront 대기
+- [ ] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬·EC2 내부 51개 PASS, CloudFront 대기
 - [x] 커밋: `chore(backend): 스모크 테스트 스크립트`
 
 ### STEP 14. 최종 검증·문서화·시연 준비 — Day 4
