@@ -261,7 +261,7 @@
 2. `npm run build` → `grep -r "demo1234" dist` 결과 없음 확인(목 데이터 미포함)
 3. `aws s3 sync dist/assets s3://ledger-app-s3/assets --cache-control "public,max-age=31536000,immutable"`
 4. `aws s3 sync dist/ s3://ledger-app-s3/ --exclude "assets/*" --cache-control "no-cache"`
-5. 필요하면 `aws cloudfront create-invalidation --distribution-id E2Q0XEE8TA0BOI --paths "/index.html"` (`index.html`이 `no-cache`라 보통 불필요)
+5. `aws cloudfront create-invalidation --distribution-id E2Q0XEE8TA0BOI --paths "/index.html" "/"` — `index.html`을 `no-cache`로 올리면 보통 불필요하지만, **이전 업로드가 `--cache-control` 없이 올라갔으면 CloudFront가 옛 `index.html`을 최대 24시간 캐시**한다(10/20 실제 발생: `x-cache: Hit`, `age` 수천 초). 확인이 안 되면 항상 무효화한다. 업로드는 누가 하든 3·4번 명령 그대로 쓴다
 6. `curl -s https://ledger.lsj.mzsec.cloud/ | grep -o 'assets/index-[^"]*'`가 `dist/assets` 파일명과 같은지 확인
 
 ## 6. systemd 서비스 기준
