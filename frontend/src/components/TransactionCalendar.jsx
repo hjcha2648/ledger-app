@@ -4,7 +4,7 @@ import { CELL_HOVER, CELL_TINT, DIM_CHILDREN } from '../constants/hoverTone'
 import { formatCompactKRW, formatKRW } from '../utils/format'
 
 const DOT = { INCOME: 'bg-income', EXPENSE: 'bg-expense' }
-// 요일 글자색: 지출색(#f04452)·수입색과 혼동되지 않게 채도를 낮춘 rose/sky
+// 요일 글자색: 지출색(코랄 #ef7b6c)·수입색과 혼동되지 않게 채도를 낮춘 rose/sky
 const WEEKDAY_TEXT = { 0: 'text-rose-400', 6: 'text-sky-500' }
 const MAX_DOTS = 5 // 점 최대 개수. 넘으면 마지막(5번째) 자리를 "+남은 건수"로 바꾼다
 const MINUS = '−'

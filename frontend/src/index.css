@@ -15,14 +15,14 @@
   --color-accent: #0f9d58;
   --color-accent-soft: #d7f0e1;
   --color-gem-ink: #1f1f1f;
-  /* 수입·지출 색은 브랜드 그라데이션의 시작(초록)·끝(빨강)과 동일 */
-  --color-income: #12b76a;
-  --color-expense: #f04452;
+  /* 수입·지출 색은 로고 색에 맞춘 따뜻한 초록 / 코랄. 표·캘린더·칩의 호버 색(income/10, expense/10)도 이 토큰에서 나온다 */
+  --color-income: #22b35e;
+  --color-expense: #ef7b6c;
 
   /* 글자용 진한 색 (흰 배경 대비 WCAG AA 4.5:1 이상).
      채움·배지·차트에는 위의 브랜드 색을, 작은 글자와 금액에는 아래 -ink 색을 쓴다. */
-  --color-income-ink: #0a7a45;
-  --color-expense-ink: #c8283a;
+  --color-income-ink: #17803d;
+  --color-expense-ink: #c2412d;
   --color-accent-ink: #0b7a43;
 
   /* 텍스트 위계: 제목(gem-ink) > 본문(ink-muted) > 보조(ink-subtle). 모두 AA 이상 */
