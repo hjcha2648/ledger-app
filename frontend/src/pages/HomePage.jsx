@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import HomeIconLabel from '../components/ui/HomeIconLabel'
 import Icon from '../components/ui/Icon'
 import ParrotLogo from '../components/ui/ParrotLogo'
 import { HOME_PHRASE } from '../constants/app'
@@ -8,7 +9,7 @@ import { NAV_LINKS } from '../constants/nav'
 const delay = (ms) => ({ animationDelay: `${ms}ms` })
 
 // 로그인 후 첫 화면(현관): 천천히 떠다니는 메시 그라데이션 배경 위에 큰 문구와 큰 아이콘 3개만 둔다.
-// 아이콘에는 칸(카드)·이름·설명 없이 모션만 적용된다: hover 시 6px 떠오름 + accent 색 + 선 그리기.
+// 아이콘에는 칸(카드)·설명 없이 모션만 적용된다: hover 시 6px 떠오름 + accent 색 + 선 그리기 + 이름 글씨.
 export default function HomePage() {
   return (
     <>
@@ -35,10 +36,11 @@ export default function HomePage() {
               key={l.to}
               to={l.to}
               aria-label={`${l.label}: ${l.desc}`}
-              className="focus-ring group animate-fade-up rounded-3xl p-2 text-ink-muted transition duration-300 hover:-translate-y-1.5 hover:text-accent focus-visible:-translate-y-1.5 focus-visible:text-accent motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
+              className="focus-ring group relative animate-fade-up rounded-3xl p-2 text-ink-muted transition duration-300 hover:-translate-y-1.5 hover:text-accent focus-visible:-translate-y-1.5 focus-visible:text-accent motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
               style={delay(160 + i * 100)}
             >
               <Icon name={l.icon} draw strokeWidth={1.4} className="h-16 w-16 sm:h-28 sm:w-28" />
+              <HomeIconLabel label={l.label} />
             </Link>
           ))}
         </nav>

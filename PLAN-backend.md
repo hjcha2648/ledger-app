@@ -4,13 +4,13 @@
 > 담당: B — 백엔드·DB / 브랜치: `feat/backend`
 > 목표: FastAPI + SQLAlchemy + MariaDB로 인증·카테고리·거래·정기결제(C/R/D)·대시보드 API를 완성하고, A가 EC2에 그대로 배포할 수 있는 상태로 넘긴다.
 
-### 진행 현황 (2026-10-19 기준)
+### 진행 현황 (2026-10-20 기준)
 
 | 상태 | STEP |
 |---|---|
-| ✅ 완료 | 0~5, 7, 8, 10, 11, 13 / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) |
-| ⏳ 팀 대기 | 6 (API 계약 공유·PR 병합), 9·12 (EC2·CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
-| ❓ 결정 필요 | `created_at` 등 UTC 시각에 `Z` 표기 여부 (C 답변 대기) |
+| ✅ 완료 | 0~11, 13 (EC2 내부·CloudFront smoke 51개 PASS) / 12 (CloudFront 주소에서 C 화면 브라우저 확인 완료) / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) / PR #1~#6 `main` 병합 (프론트 포함) |
+| ⏳ 팀 대기 | 14 나머지 (EC2 시연 데이터·백업·리허설) |
+| ✔️ 결정됨 | `created_at` 등 UTC 시각은 `Z` 없이 표기 (`docs/api-contract.md`) |
 
 - API 14개 구현 완료, 로컬 스모크 테스트 51개 PASS
 
@@ -23,7 +23,7 @@
 - [x] 다른 사용자의 거래·정기결제·카테고리는 조회·수정·삭제 시 **404**.
 - [x] 대시보드는 `transactions`만 집계한다 (정기결제 금액 미포함).
 - [x] `python -m app.init_db` 한 번으로 테이블 생성 + 기본 카테고리 시드가 끝난다 (여러 번 실행해도 안전).
-- [ ] 로컬(WSL MariaDB)과 EC2(내부 MariaDB) 양쪽에서 `.env`만 바꿔 동일하게 실행된다. — 로컬 완료, EC2 대기
+- [x] 로컬(WSL MariaDB)과 EC2(내부 MariaDB) 양쪽에서 `.env`만 바꿔 동일하게 실행된다.
 
 ---
 
@@ -214,8 +214,8 @@ ENABLE_DOCS=true
 - [x] `config.py`, `database.py` (`pool_pre_ping=True`, `pool_recycle=3600`)
 - [x] 4개 모델 작성 + `init_db.py` (create_all + 시드, 재실행 안전)
 - [x] `security.py`, `deps.py`, `/api/auth/register|login|me`, `/api/health`
-- [ ] **§5 API 계약을 C와 확정** → 변경 사항 반영 후 팀 공유 (C는 이걸로 목 데이터 작업)
-- [ ] A에게 실행 명령/포트/환경 변수 목록 전달 (§8)
+- [x] **§5 API 계약을 C와 확정** → 변경 사항 반영 후 팀 공유 (C는 이걸로 목 데이터 작업)
+- [x] A에게 실행 명령/포트/환경 변수 목록 전달 (§8) — `docs/agent-infra.md`
 - 종료 조건: 로컬에서 회원가입 → 로그인 → `/api/auth/me` 성공, 중복 가입 409
 
 ### Day 2 — 카테고리 + 거래 CRUD
@@ -223,16 +223,16 @@ ENABLE_DOCS=true
 - [x] `GET/POST /api/categories` (기본 + 내 카테고리, 중복 409)
 - [x] `get_usable_category` 헬퍼
 - [x] 거래 `GET(month)/POST/PATCH/DELETE`
-- [ ] Swagger로 전 엔드포인트 수동 확인, C의 거래 화면과 로컬 연동 (Vite proxy `/api` → `localhost:8000`)
-- [ ] A와 EC2에서 venv + 의존성 설치 + `init_db` + systemd 기동 확인 지원
+- [x] Swagger로 전 엔드포인트 수동 확인, C의 거래 화면과 로컬 연동 (Vite proxy `/api` → `localhost:8000`) — smoke.sh 51개 + CloudFront 브라우저 확인으로 대체
+- [x] A와 EC2에서 venv + 의존성 설치 + `init_db` + systemd 기동 확인 지원
 - 종료 조건: 거래 등록/월별 조회/수정/삭제 동작, 타 계정 거래 404
 
 ### Day 3 — 정기결제 + 대시보드 + E2E
 
 - [x] 정기결제 `GET/POST/DELETE` (EXPENSE 카테고리만, 거래 미연동)
 - [x] 대시보드 집계 API (summary / expense_by_category / monthly_compare)
-- [ ] C의 정기결제·차트 화면과 연동, 필드명 불일치 즉시 수정
-- [ ] EC2 배포본 갱신(`git pull` → 재시작) 후 CloudFront `/api/*` 경유 호출 확인 (A와 함께)
+- [x] C의 정기결제·차트 화면과 연동, 필드명 불일치 즉시 수정
+- [x] EC2 배포본 갱신(`git pull` → 재시작) 후 CloudFront `/api/*` 경유 호출 확인 (A와 함께) — `https://d2q1okho7uqgh2.cloudfront.net`
 - [x] `scripts/smoke.sh` 작성 (가입→로그인→거래→정기결제→대시보드 curl 흐름)
 - 종료 조건: 로컬·CloudFront 양쪽에서 핵심 기능 E2E 연결
 
@@ -385,9 +385,9 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 
 ### STEP 6. API 계약 확정·공유 — Day 1 종료 전
 
-- [ ] §5 내용을 C와 함께 검토, 바뀐 필드명/형식을 이 문서에 반영
-- [ ] A에게 §8 전달 (실행 명령, 포트, 환경 변수 키, `init_db` 명령)
-- [ ] `feat/backend` 푸시 → `main`으로 PR 생성·병합 (인증까지 동작하는 상태)
+- [x] §5 내용을 C와 함께 검토, 바뀐 필드명/형식을 이 문서에 반영 — `docs/api-contract.md`
+- [x] A에게 §8 전달 (실행 명령, 포트, 환경 변수 키, `init_db` 명령)
+- [x] `feat/backend` 푸시 → `main`으로 PR 생성·병합 (인증까지 동작하는 상태)
 
 ### STEP 7. 카테고리 API — Day 2 오전
 
@@ -404,15 +404,15 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
   - 단건은 `id + user_id`로 조회, 없으면 404
   - POST/PATCH 모두 최종 `type`·`category_id` 조합을 `get_usable_category`로 검증
 - [x] 확인: 등록 → 월별 조회(1일·말일 경계) → 수정 → 삭제, 금액 0·유형 불일치 422, 계정 B로 A 거래 수정/삭제 404
-- [ ] C의 거래 화면과 로컬 연동 테스트
-- [ ] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합 — 커밋 완료, PR 병합 대기
+- [x] C의 거래 화면과 로컬 연동 테스트 — CloudFront 주소에서 브라우저로 확인
+- [x] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합
 
 ### STEP 9. EC2 최초 배포 지원 — Day 2 오후
 
-- [ ] A와 함께 EC2에서 `git clone/pull` → venv → `pip install -r backend/requirements.txt`
-- [ ] EC2 환경 파일 값 확인 (A가 입력), `python -m app.init_db` 실행
-- [ ] systemd 기동 후 EC2 내부에서 `curl http://127.0.0.1:8000/api/health` 확인
-- [ ] 의존성 설치·Python 버전 문제 있으면 `requirements.txt` 수정
+- [x] A와 함께 EC2에서 `git clone/pull` → venv → `pip install -r backend/requirements.txt` — 실제 경로 `/home/ubuntu/vibe-lab/ledger-app`
+- [x] EC2 환경 파일 값 확인 (A가 입력), `python -m app.init_db` 실행
+- [x] systemd 기동 후 EC2 내부에서 `curl http://127.0.0.1:8000/api/health` 확인
+- [x] 의존성 설치·Python 버전 문제 있으면 `requirements.txt` 수정 — 문제 없음 (Python 3.14.4)
 
 ### STEP 10. 정기결제 C/R/D — Day 3 오전
 
@@ -428,18 +428,18 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
   - `expense_by_category`: 카테고리별 지출 합 내림차순
   - `monthly_compare`: 최근 6개월, 빈 달 0 채움, 오래된 달부터
 - [x] 확인: 거래 목록 합계와 summary 일치, 원형 합 = 지출 합, 막대 항상 6개, 정기결제 금액 미포함
-- [ ] 커밋: `feat(backend): 대시보드 집계 API` → PR 병합 — 커밋 완료, PR 병합 대기
+- [x] 커밋: `feat(backend): 대시보드 집계 API` → PR 병합
 
 ### STEP 12. CloudFront 경유 E2E 연결 — Day 3 오후
 
 - [ ] EC2에서 `git pull` → `sudo systemctl restart <service>` → `journalctl`로 오류 확인
-- [ ] CloudFront URL로 `/api/health`, 로그인, 거래 등록 확인 (Authorization 헤더 전달 여부)
-- [ ] C와 정기결제·대시보드 화면 연동하며 필드명 불일치 즉시 수정
+- [x] CloudFront URL로 `/api/health`, 로그인, 거래 등록 확인 (Authorization 헤더 전달 여부)
+- [x] C와 정기결제·대시보드 화면 연동하며 필드명 불일치 즉시 수정
 
 ### STEP 13. 수동 테스트 보조 스크립트 — Day 3 종료 전
 
 - [x] `scripts/smoke.sh` — `BASE_URL`을 인자로 받아 가입 → 로그인 → 거래 등록 → 정기결제 등록 → 대시보드 조회를 curl로 실행
-- [ ] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬 51개 PASS, CloudFront 대기
+- [x] 로컬(`http://localhost:8000`)과 CloudFront URL 양쪽에서 실행 — 로컬·EC2 내부·CloudFront 모두 51개 PASS
 - [x] 커밋: `chore(backend): 스모크 테스트 스크립트`
 
 ### STEP 14. 최종 검증·문서화·시연 준비 — Day 4

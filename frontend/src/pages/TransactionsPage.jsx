@@ -15,6 +15,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
 import ErrorMessage from '../components/ui/ErrorMessage'
 import Modal from '../components/ui/Modal'
+import Select from '../components/ui/Select'
 import Spinner from '../components/ui/Spinner'
 import useCategories from '../hooks/useCategories'
 import { formatDate, formatKRW, formatSignedKRW, typeColorClass } from '../utils/format'
@@ -40,6 +41,8 @@ export default function TransactionsPage() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [actionError, setActionError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const [catFilter, setCatFilter] = useState(null) // 카테고리 보기: 선택한 category_id (null = 전체)
+  const [chipFocus, setChipFocus] = useState(null) // 요약 칩 호버·포커스: 'INCOME' | 'EXPENSE' | null
 
   const cats = useCategories()
   // 로딩 표시는 effect가 아닌 이벤트 시점에 켠다 (effect 안 동기 setState 방지)
@@ -67,10 +70,42 @@ export default function TransactionsPage() {
 
   const categoryName = useMemo(() => new Map(cats.categories.map((c) => [c.id, c.name])), [cats.categories])
 
+  // 카테고리 보기: 이미 불러온 그 달 거래를 프론트에서 걸러 보여준다 (API·백엔드 변경 없음)
+  const categoryOptions = useMemo(() => {
+    const byId = new Map()
+    transactions.forEach((t) => {
+      const name = t.category_name ?? categoryName.get(t.category_id) ?? '-'
+      const o = byId.get(t.category_id) ?? { id: t.category_id, name, count: 0 }
+      o.count += 1
+      byId.set(t.category_id, o)
+    })
+    return [...byId.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ko'))
+  }, [transactions, categoryName])
+  // 월을 바꾸거나 거래를 지워 선택한 카테고리가 목록에 없어지면 자동으로 전체로 본다
+  const activeCat = categoryOptions.some((c) => c.id === catFilter) ? catFilter : null
+  const visible = useMemo(
+    () => (activeCat == null ? transactions : transactions.filter((t) => t.category_id === activeCat)),
+    [transactions, activeCat],
+  )
+
   const totals = useMemo(() => {
-    const sum = (type) => transactions.filter((t) => t.type === type).reduce((s, t) => s + t.amount_krw, 0)
+    const sum = (type) => visible.filter((t) => t.type === type).reduce((s, t) => s + t.amount_krw, 0)
     return { income: sum('INCOME'), expense: sum('EXPENSE') }
-  }, [transactions])
+  }, [visible])
+
+  // 수입·지출 칩을 가리키면 해당 거래를 유형 색(수입 초록·지출 빨강)으로 강조하고 나머지는 흐리게 (잔액 칩은 해당 없음)
+  const rowTone = (t) => {
+    if (!chipFocus) return undefined
+    if (chipFocus === t.type) return t.type === 'INCOME' ? 'income' : 'expense'
+    return 'dim'
+  }
+  const chipProps = (key) => ({
+    tabIndex: 0,
+    onMouseEnter: () => setChipFocus(key),
+    onMouseLeave: () => setChipFocus(null),
+    onFocus: () => setChipFocus(key),
+    onBlur: () => setChipFocus(null),
+  })
 
   const handleSubmit = async (payload) => {
     if (editing?.id) await updateTransaction(editing.id, payload)
@@ -106,12 +141,12 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <span className="chip">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="chip focus-ring" {...chipProps('INCOME')}>
           <span className="h-2 w-2 rounded-full bg-income" />
           수입 <strong className="num-strong text-income-ink">{formatKRW(totals.income)}</strong>
         </span>
-        <span className="chip">
+        <span className="chip focus-ring" {...chipProps('EXPENSE')}>
           <span className="h-2 w-2 rounded-full bg-expense" />
           지출 <strong className="num-strong text-expense-ink">{formatKRW(totals.expense)}</strong>
         </span>
@@ -119,6 +154,19 @@ export default function TransactionsPage() {
           <span className="h-2 w-2 rounded-full bg-gem-ink" />
           잔액 <strong className="num-strong">{formatKRW(totals.income - totals.expense)}</strong>
         </span>
+        {/* 카테고리별 보기: 한 칸에서 선택. 선택하면 표와 위 합계가 그 카테고리만 반영한다 */}
+        {!loading && !error && categoryOptions.length > 0 && (
+          <Select
+            aria-label="카테고리별 보기"
+            className="w-full sm:ml-auto sm:w-40"
+            value={activeCat == null ? '' : String(activeCat)}
+            onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
+            options={[
+              { value: '', label: '전체 카테고리' },
+              ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+          />
+        )}
       </div>
 
       <ErrorMessage message={cats.error} onRetry={cats.reload} />
@@ -135,8 +183,8 @@ export default function TransactionsPage() {
           <EmptyState message="이 달에 등록된 거래가 없습니다." />
         ) : (
           <DataTable columns={COLUMNS}>
-            {transactions.map((t) => (
-              <Tr key={t.id}>
+            {visible.map((t) => (
+              <Tr key={t.id} tone={rowTone(t)}>
                 <Td className="whitespace-nowrap text-ink-muted">{formatDate(t.occurred_on)}</Td>
                 <Td>
                   <TypeBadge type={t.type} />

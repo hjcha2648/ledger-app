@@ -64,7 +64,7 @@ AI에게 줄 첫 마디 예시: `AGENTS.md, docs/agent-infra.md, PLAN-infra.md, 
 | OS | Ubuntu 26.04 LTS (패키지 관리자 `apt`, 로컬 WSL·Python 3.14와 동일) |
 | 앱 포트 | 8000 |
 | 서비스명 | `ledger-api` |
-| 프로젝트 경로 | `/home/ubuntu/ledger-app` (실행 디렉터리 `backend/`, venv `.venv/`) |
+| 프로젝트 경로 | `/home/ubuntu/vibe-lab/ledger-app` (실행 디렉터리 `backend/`, venv `.venv/`) |
 | 환경 파일 | `/etc/ledger/backend.env` (권한 600) |
 | DB·앱 계정 | `ledger_db`, `app_user` (`localhost`·`127.0.0.1` 두 계정) |
 
@@ -128,7 +128,7 @@ AI에게 줄 첫 마디 예시: `AGENTS.md, docs/agent-infra.md, PLAN-infra.md, 
 
 ### 보안 그룹
 - SSH 22: 팀 고정 IP만
-- 앱 포트: CloudFront 관리형 prefix list(`com.amazonaws.global.cloudfront.origin_facing`)만 허용(선택 가능한 경우)
+- 앱 포트: CloudFront 관리형 prefix list(`com.amazonaws.global.cloudfront.origin-facing`)만 허용(선택 가능한 경우)
 - 3306: 인바운드 규칙 없음
 
 ## 자주 쓰는 확인 명령

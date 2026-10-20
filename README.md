@@ -148,7 +148,7 @@ curl http://127.0.0.1:8000/api/health
 - 운영에서는 `ENABLE_DOCS=false`, `CORS_ORIGINS` 비움 (CloudFront 같은 도메인)
 - DB 비밀번호·JWT 키는 로컬과 다른 강한 값 사용
 
-systemd 유닛 (`/etc/systemd/system/ledger-api.service`, 경로는 PLAN.md 2.2 확정값):
+systemd 유닛 (`/etc/systemd/system/ledger-api.service`, 경로는 PLAN-infra.md 2.2 확정값):
 
 ```ini
 [Unit]

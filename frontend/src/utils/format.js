@@ -4,6 +4,9 @@ export function formatKRW(amount) {
   return `${krw.format(amount ?? 0)}원`
 }
 
+// 단위 없는 숫자: 320000 → 320,000 (열 맞춤 표에서 사용)
+export const formatNumber = (n) => krw.format(n ?? 0)
+
 // 거래 금액 표시: 수입은 +, 지출은 − 부호
 export function formatSignedKRW(type, amount) {
   return `${type === 'INCOME' ? '+' : '−'}${formatKRW(amount)}`
