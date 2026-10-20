@@ -135,6 +135,13 @@ const PATHS = {
       <path d="M21 12H9" />
     </>
   ),
+  mailSend: (
+    <>
+      <rect x="2" y="5" width="16" height="12" rx="2" />
+      <path d="m2 7 8 5.2L18 7" />
+      <path d="M19.5 14H23m0 0-2-2m2 2-2 2" />
+    </>
+  ),
   mail: (
     <>
       <rect x="2" y="4" width="20" height="16" rx="2" />

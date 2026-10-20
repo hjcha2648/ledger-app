@@ -5,7 +5,6 @@ import MonthlyBarChart from '../components/charts/MonthlyBarChart'
 import PageHeader from '../components/layout/PageHeader'
 import MonthPicker from '../components/MonthPicker'
 import MonthlyEmailDialog from '../components/MonthlyEmailDialog'
-import Button from '../components/ui/Button'
 import ErrorMessage from '../components/ui/ErrorMessage'
 import Icon from '../components/ui/Icon'
 import Spinner from '../components/ui/Spinner'
@@ -93,10 +92,21 @@ export default function DashboardPage() {
         <PageHeader icon="dashboard" title="대시보드" subtitle="이번 달 수입과 지출을 한눈에" />
         <div className="flex flex-wrap items-center gap-2">
           <MonthPicker month={month} onChange={changeMonth} />
-          <Button variant="soft" onClick={() => setMailOpen(true)}>
-            <Icon name="mail" className="h-4 w-4" />
-            명세서 메일로 받기
-          </Button>
+          {/* 글자 없이 메일 전송 아이콘만. 호버·키보드 포커스 시 설명이 버튼 위쪽에 글씨만 뜬다 */}
+          <button
+            type="button"
+            onClick={() => setMailOpen(true)}
+            aria-label="명세서 메일로 받기"
+            className="focus-ring group relative flex h-[2.625rem] w-[2.625rem] items-center justify-center rounded-full bg-slate-100 text-ink-muted transition-colors duration-150 hover:bg-accent-soft hover:text-accent-ink motion-reduce:transition-none"
+          >
+            <Icon name="mailSend" className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute right-0 bottom-full z-20 mb-1 text-xs font-medium whitespace-nowrap text-slate-700 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+            >
+              명세서 메일로 받기
+            </span>
+          </button>
         </div>
       </div>
 
