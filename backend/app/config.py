@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     ses_sender: str = ""  # SES에서 인증한 발신 주소 (예: noreply@lsj.mzsec.cloud)
     email_cooldown_seconds: int = 300  # 사용자별 재발송 대기 시간
 
+    # 영수증·명세서 인식 (Bedrock 멀티모달, PLAN.md 기능 3). 기본은 꺼짐 — 켜지 않으면 503
+    receipt_enabled: bool = False
+    receipt_max_bytes: int = 5 * 1024 * 1024
+    receipt_rate_limit_per_min: int = 5
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

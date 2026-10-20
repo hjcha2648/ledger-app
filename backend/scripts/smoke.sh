@@ -198,6 +198,13 @@ check "명세서 메일 month 누락 422" "$CODE" 422
 req GET "/reports/email-status" ""
 check "메일 인증 상태 토큰 없이 401" "$CODE" 401
 
+# ---------------------------------------------------------------- 영수증 인식 (모델 호출 없이 인증·검증만)
+section "receipts"
+req POST "/receipts/analyze" ""
+check "영수증 분석 토큰 없이 401" "$CODE" 401
+req POST "/receipts/analyze" "$TOKEN_A"
+check "영수증 분석 파일 없음 422" "$CODE" 422
+
 # ---------------------------------------------------------------- 정리
 section "cleanup"
 req DELETE "/subscriptions/$SUB_ID" "$TOKEN_A"
