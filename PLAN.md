@@ -112,6 +112,9 @@
 
 - 액세스 키를 EC2에 저장하지 않는다 (인스턴스 역할만 사용).
 - 보안 그룹 변경은 없다 (EC2 → Bedrock은 아웃바운드 HTTPS).
+- 작업 정리 문서: [docs/bedrock-infra.md](docs/bedrock-infra.md)
+- 진행 (10/20, A): **A1~A5 완료.** A1은 B 확인(위 0장). A2 `ledger-ec2-role`에 인라인 정책 `ledger-bedrock-invoke`(`bedrock:InvokeModel`, 위 ARN 4개) 연결. A3 역할 자격 증명으로 호출 확인. A4 환경 파일에 3개 키 추가(백업 `backend.env.bak-20261020-0448`) → 재시작. A5 원본 응답 제한 시간 60초, 배포 `Deployed`. 확인: CloudFront 경유 `POST /api/chat` → 200, 5.3초. **A6·A7 남음**(A7 계획은 PLAN-infra.md T20에 추가함)
+- EC2 셸에서 개인 `aws login` 자격 증명(`AWS_PROFILE`)이 잡혀 있으면 `aws` 명령이 역할이 아니라 개인 권한으로 실행된다. 역할 권한 확인은 `env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE aws ...`로 한다. 백엔드(systemd)는 `AWS_PROFILE`이 없으므로 항상 역할을 쓴다.
 
 ---
 
