@@ -38,6 +38,15 @@ app.include_router(dashboard.router)
 app.include_router(chat.router)
 app.include_router(reports.router)
 
+# 영수증 업로드(multipart)는 python-multipart가 필요하다. 서버에 아직 설치 전이면(pip install 전 재시작)
+# 영수증 API만 빼고 나머지 API는 정상으로 띄운다.
+try:
+    from app.routers import receipts
+
+    app.include_router(receipts.router)
+except RuntimeError as e:
+    logger.error("Receipt API disabled: %s", e)
+
 
 @app.exception_handler(Exception)
 async def unhandled_exception(request: Request, exc: Exception):
