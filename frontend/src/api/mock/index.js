@@ -383,3 +383,37 @@ export const mockChat = {
     }
   },
 }
+
+// ---------- reports (명세서 메일 목: 실제 발송 없음. 인증 요청 → pending → 다음 상태 조회 때 verified 로 가정) ----------
+const emailState = {} // userId → 'unverified' | 'pending' | 'verified'
+const lastMailAt = {} // userId → 마지막 발송 시각(ms), 5분 제한
+const maskEmail = (email) => `${email.slice(0, 1)}***@${email.split('@')[1]}`
+const emailOf = (uid) => db.users.find((u) => u.id === uid).email
+
+export const mockReports = {
+  async status() {
+    await wait()
+    const uid = currentUserId()
+    if (emailState[uid] === 'pending') emailState[uid] = 'verified' // 링크를 눌렀다고 가정
+    return { email: maskEmail(emailOf(uid)), status: emailState[uid] ?? 'unverified' }
+  },
+  async requestVerification() {
+    await wait()
+    const uid = currentUserId()
+    if (!emailState[uid] || emailState[uid] === 'unverified') emailState[uid] = 'pending'
+    return { email: maskEmail(emailOf(uid)), status: emailState[uid] }
+  },
+  async sendMonthly({ month }) {
+    await wait(600)
+    const uid = currentUserId()
+    checkMonth(month)
+    if (emailState[uid] !== 'verified') {
+      throw new ApiError(409, '받는 메일 주소 인증이 필요합니다. 메일 인증을 먼저 완료하세요.')
+    }
+    if (lastMailAt[uid] && Date.now() - lastMailAt[uid] < 5 * 60 * 1000) {
+      throw new ApiError(429, '명세서 메일은 5분 뒤에 다시 보낼 수 있습니다.')
+    }
+    lastMailAt[uid] = Date.now()
+    return { sent_to: maskEmail(emailOf(uid)) }
+  },
+}

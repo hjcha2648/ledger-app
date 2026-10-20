@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.routers import auth, categories, chat, dashboard, subscriptions, transactions
+from app.routers import auth, categories, chat, dashboard, reports, subscriptions, transactions
 
 logger = logging.getLogger("ledger")
 
@@ -36,6 +36,7 @@ app.include_router(transactions.router)
 app.include_router(subscriptions.router)
 app.include_router(dashboard.router)
 app.include_router(chat.router)
+app.include_router(reports.router)
 
 
 @app.exception_handler(Exception)

@@ -1,4 +1,4 @@
-# Budgo 프론트엔드
+# 소복 프론트엔드
 
 React 19 · Vite · Tailwind CSS 4 · Recharts · react-router-dom 7
 

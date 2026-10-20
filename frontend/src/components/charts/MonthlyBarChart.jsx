@@ -4,15 +4,15 @@ import useReducedMotion from '../../hooks/useReducedMotion'
 import { formatCompactKRW, formatKRW, formatMonthShort } from '../../utils/format'
 import { formatMonthLabel } from '../../utils/month'
 
-const INCOME_COLOR = '#12b76a' // --color-income (index.css 와 동일)
-const EXPENSE_COLOR = '#f04452' // --color-expense (index.css 와 동일)
+const INCOME_COLOR = '#22b35e' // --color-income (index.css 와 동일)
+const EXPENSE_COLOR = '#ef7b6c' // --color-expense (index.css 와 동일)
 
-const EXPENSE_INK = '#c8283a' // --color-expense-ink: 금액 라벨용 진한 톤
+const EXPENSE_INK = '#c2412d' // --color-expense-ink: 금액 라벨용 진한 톤
 
 // 지출이 주인공: 막대는 굵고 진하게·선은 굵게, 수입은 좁고 옅게·선은 가늘게 보조 역할
 const SERIES = [
-  { key: 'income_krw', name: '수입', color: INCOME_COLOR, lineColor: '#0a8f50', barSize: 14, barOpacity: 0.5, lineWidth: 2, lineOpacity: 0.6, dotR: 3 },
-  { key: 'expense_krw', name: '지출', color: EXPENSE_COLOR, lineColor: '#d0293b', barSize: 26, barOpacity: 1, lineWidth: 3, lineOpacity: 1, dotR: 4.5 },
+  { key: 'income_krw', name: '수입', color: INCOME_COLOR, lineColor: '#169a4c', barSize: 14, barOpacity: 0.5, lineWidth: 2, lineOpacity: 0.6, dotR: 3 },
+  { key: 'expense_krw', name: '지출', color: EXPENSE_COLOR, lineColor: '#e0594a', barSize: 26, barOpacity: 1, lineWidth: 3, lineOpacity: 1, dotR: 4.5 },
 ]
 
 const MODES = [

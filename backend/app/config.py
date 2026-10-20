@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     bedrock_fallback_model_id: str = "global.anthropic.claude-opus-4-8"  # 거절(refusal) 시 재시도 모델, 비우면 사용 안 함
     chat_rate_limit_per_min: int = 10
 
+    # 월간 명세서 메일 (Amazon SES, PLAN.md 기능 2). 기본은 꺼짐 — 켜지 않으면 503
+    email_enabled: bool = False
+    ses_region: str = "ap-northeast-2"
+    ses_sender: str = ""  # SES에서 인증한 발신 주소 (예: noreply@lsj.mzsec.cloud)
+    email_cooldown_seconds: int = 300  # 사용자별 재발송 대기 시간
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

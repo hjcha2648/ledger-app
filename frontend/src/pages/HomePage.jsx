@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import HomeIconLabel from '../components/ui/HomeIconLabel'
 import Icon from '../components/ui/Icon'
-import ParrotLogo from '../components/ui/ParrotLogo'
+import Logo from '../components/ui/Logo'
 import { HOME_PHRASE } from '../constants/app'
 import { NAV_LINKS } from '../constants/nav'
 
@@ -46,7 +46,7 @@ export default function HomePage() {
         </nav>
 
         <p className="animate-fade-up flex items-center gap-2 text-xs text-ink-subtle" style={delay(560)}>
-          <ParrotLogo size={20} />
+          <Logo size={20} />
           오늘도 가볍게 기록해요
         </p>
       </div>

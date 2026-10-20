@@ -5,6 +5,8 @@
    포인트 색은 수입(초록)·지출(빨강). 기존 토큰 값은 변경하지 않고 확장만 한다. */
 @theme {
   /* 글꼴: Pretendard 우선(설치된 경우), 없으면 시스템 한글 글꼴로 폴백 */
+  /* 서비스 이름(소복) 전용: 따뜻하고 도톰한 Sunflower (Bold 700 만 로드, 사용할 때 font-bold 와 함께 쓴다). */
+  --font-brand: "Sunflower", "Pretendard Variable", "Pretendard", system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --font-sans: "Pretendard Variable", "Pretendard", system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo",
     "Noto Sans KR", "Malgun Gothic", sans-serif;
 
@@ -13,14 +15,14 @@
   --color-accent: #0f9d58;
   --color-accent-soft: #d7f0e1;
   --color-gem-ink: #1f1f1f;
-  /* 수입·지출 색은 브랜드 그라데이션의 시작(초록)·끝(빨강)과 동일 */
-  --color-income: #12b76a;
-  --color-expense: #f04452;
+  /* 수입·지출 색은 로고 색에 맞춘 따뜻한 초록 / 코랄. 표·캘린더·칩의 호버 색(income/10, expense/10)도 이 토큰에서 나온다 */
+  --color-income: #22b35e;
+  --color-expense: #ef7b6c;
 
   /* 글자용 진한 색 (흰 배경 대비 WCAG AA 4.5:1 이상).
      채움·배지·차트에는 위의 브랜드 색을, 작은 글자와 금액에는 아래 -ink 색을 쓴다. */
-  --color-income-ink: #0a7a45;
-  --color-expense-ink: #c8283a;
+  --color-income-ink: #17803d;
+  --color-expense-ink: #c2412d;
   --color-accent-ink: #0b7a43;
 
   /* 텍스트 위계: 제목(gem-ink) > 본문(ink-muted) > 보조(ink-subtle). 모두 AA 이상 */
@@ -39,6 +41,17 @@
   --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.05);
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 18px -8px rgb(15 23 42 / 0.1);
   --shadow-pop: 0 2px 6px rgb(15 23 42 / 0.06), 0 14px 36px -10px rgb(15 23 42 / 0.22);
+}
+
+/* 서비스 이름(소복) 전용: 잎사귀 초록 → 연두, 따뜻한 초록 두 색만 쓰는 단순한 그라데이션. (홈 문구·챗봇 인사의 text-gradient 는 그대로) */
+@utility text-gradient-brand {
+  background: linear-gradient(90deg, #22b35e 0%, #8bc34a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+  line-height: 1.2;
+  padding: 0.04em 0.05em 0.12em;
 }
 
 @utility text-gradient {
@@ -202,6 +215,14 @@ body {
 .animate-fade-in {
   animation: fade-in 0.18s ease-out both;
 }
+/* 스크롤 영역 위·아래 가장자리를 옅게 페이드 (챗봇 대화 영역) */
+.scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 20px), transparent);
+}
+.animate-msg {
+  animation: fade-up 0.18s ease-out both;
+}
 /* 모달 패널: 모바일은 아래에서 올라오는 시트, 데스크톱(sm 이상)은 fade + scale */
 .modal-panel {
   animation: sheet-up 0.22s ease-out both;
@@ -217,6 +238,7 @@ body {
   .animate-fade-up,
   .animate-page,
   .animate-fade-in,
+  .animate-msg,
   .modal-panel,
   .group:hover .icon-draw *,
   .group:focus-visible .icon-draw * {
