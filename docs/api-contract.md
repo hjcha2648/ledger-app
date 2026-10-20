@@ -269,6 +269,58 @@
 
 ---
 
+## 월간 명세서 메일 ([PLAN.md](../PLAN.md) 기능 2)
+
+### POST `/api/reports/monthly-email` — 선택 월 명세서를 내 메일로 발송 (Bearer JWT 필수)
+
+받는 주소는 **로그인한 사용자 본인 이메일로 고정**(요청으로 바꿀 수 없음). 내용: 수입·지출·잔액, 카테고리별 지출(비율·지난달 대비, 지난달에 없던 카테고리는 "신규"), 최근 6개월, 해당 월 거래 내역(최대 200건), 등록된 정기결제.
+
+요청
+```json
+{"month": "2026-10"}
+```
+
+응답 `202`
+```json
+{"sent_to": "u***@gmail.com"}
+```
+- `sent_to`는 앞 한 글자만 남기고 가린 주소 → 확인 창·완료 안내에 그대로 표시
+- 202는 SES가 발송을 접수했다는 뜻. 도착까지 몇 초~몇 분, 스팸함에 갈 수 있음
+
+| 코드 | 경우 | `detail` |
+|---|---|---|
+| 401 | 토큰 없음·만료 | `인증이 필요합니다.` |
+| 422 | `month` 누락(FastAPI 기본 배열 형식), 잘못된 형식(문자열) | 배열 또는 문자열 |
+| 429 | 같은 사용자가 5분 안에 다시 요청 | `명세서 메일은 N분 뒤에 다시 보낼 수 있습니다.` |
+| 409 | **받는 주소가 SES에 인증되지 않음**(샌드박스) → 아래 메일 인증 흐름으로 안내 | `받는 메일 주소 인증이 필요합니다. 메일 인증을 먼저 완료하세요.` |
+| 503 | 기능 꺼짐(`EMAIL_ENABLED=false`), 권한·연결 오류 | `지금은 메일을 보낼 수 없습니다. 잠시 후 다시 시도하세요.` |
+
+### 받는 주소 메일 인증 (SES 샌드박스 대응)
+
+SES가 샌드박스인 동안에는 **받는 주소도 SES 인증이 필요**하다. 페이지에서 본인 주소 인증을 요청할 수 있다. 인증 메일은 **AWS가 영어로 보낸다**("Amazon Web Services – Email Address Verification Request…", 스팸함·프로모션 탭 확인). 링크는 24시간 유효. SES 프로덕션 접근이 승인되면 모든 주소가 `verified`로 나온다.
+
+#### GET `/api/reports/email-status` — 내 주소 상태 (Bearer JWT)
+```json
+{"email": "h***@gmail.com", "status": "verified"}
+```
+- `status`: `verified`(바로 받을 수 있음) / `pending`(인증 메일 링크 클릭 대기) / `unverified`(인증 요청 전)
+
+#### POST `/api/reports/email-verification` — 내 주소로 인증 메일 요청 (Bearer JWT, 본문 없음)
+- `unverified`일 때만 AWS 인증 메일을 보내고 `202` + `{"email": "...", "status": "pending"}`
+- 이미 `pending`·`verified`면 메일을 다시 보내지 않고 `200` + 현재 상태
+- 같은 사용자 1분 안 재요청 `429`, 기능 꺼짐·오류 `503`
+
+권장 화면 흐름
+```text
+[명세서 메일로 받기] → GET email-status
+  verified   → 확인 창 → POST monthly-email
+  unverified → "메일 인증이 필요해요" [인증 메일 보내기] → POST email-verification → "메일함의 링크를 눌러 주세요"
+  pending    → "메일함의 AWS 인증 링크를 눌러 주세요" [인증했어요] → GET email-status 다시 확인
+POST monthly-email 이 409면 → GET email-status 로 위 흐름 다시
+```
+
+---
+
 ## TypeScript 타입 (참고용)
 
 ```ts
