@@ -191,19 +191,19 @@ export default function TransactionsPage() {
         <PageHeader icon="transactions" title="거래 내역" subtitle="수입과 지출을 기록하고 관리해요" />
         <div className="flex w-full flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end">
           <MonthPicker month={month} onChange={changeMonth} />
-          {!loading && !error && categoryOptions.length > 0 && (
-            <Select
-              aria-label="카테고리별 보기"
-              className="w-full sm:w-[8.5rem]"
-              fieldClassName="h-[2.625rem] rounded-full pr-9 pl-3.5 whitespace-nowrap focus:border-slate-400 focus:bg-white focus:ring-0"
-              value={activeCat == null ? '' : String(activeCat)}
-              onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
-              options={[
-                { value: '', label: '전체' },
-                ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
-              ]}
-            />
-          )}
+          {/* 내역이 없는 달에도 선택창은 그대로 두고(위치가 사라지지 않게), 고를 카테고리가 없으면 비활성화한다 */}
+          <Select
+            aria-label="카테고리별 보기"
+            disabled={loading || Boolean(error) || categoryOptions.length === 0}
+            className="w-full sm:w-[8.5rem]"
+            fieldClassName="h-[2.625rem] rounded-full pr-9 pl-3.5 whitespace-nowrap disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-0"
+            value={activeCat == null ? '' : String(activeCat)}
+            onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
+            options={[
+              { value: '', label: '전체' },
+              ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+          />
           <ViewToggle value={view} onChange={setView} />
         </div>
       </div>

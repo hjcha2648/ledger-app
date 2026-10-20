@@ -1,4 +1,4 @@
-import { Children, Fragment, cloneElement, isValidElement } from 'react'
+import { Children, Fragment, cloneElement, isValidElement, useId } from 'react'
 
 // 24x24 선형 아이콘 (외부 라이브러리 없이 인라인 SVG)
 const PATHS = {
@@ -164,7 +164,11 @@ function withPathLength(node) {
   return Children.map(kids, (c) => (isValidElement(c) ? cloneElement(c, { pathLength: 1 }) : c))
 }
 
-export default function Icon({ name, className = 'h-6 w-6', strokeWidth = 2, draw = false }) {
+// brandHover: 부모(group)에 호버·포커스하면 선 색이 서비스 이름(text-gradient-brand)과 같은 그라데이션(초록 → 연두)으로 바뀌고,
+// 챗봇 질문의 레이저 말풍선처럼 광채가 번진다. 그라데이션은 이 svg 안에 정의하고(인스턴스마다 고유 id),
+// CSS(.icon-brand-hover)가 stroke 를 var(--icon-grad)로 바꾸고 drop-shadow 광채를 켠다.
+export default function Icon({ name, className = 'h-6 w-6', strokeWidth = 2, draw = false, brandHover = false }) {
+  const gradId = `icon-grad-${useId().replace(/:/g, '')}`
   return (
     <svg
       viewBox="0 0 24 24"
@@ -174,8 +178,18 @@ export default function Icon({ name, className = 'h-6 w-6', strokeWidth = 2, dra
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className={`${draw ? 'icon-draw ' : ''}${className}`}
+      className={`${draw ? 'icon-draw ' : ''}${brandHover ? 'icon-brand-hover ' : ''}${className}`}
+      style={brandHover ? { '--icon-grad': `url(#${gradId})` } : undefined}
     >
+      {brandHover && (
+        <defs>
+          {/* 서비스 이름(index.css text-gradient-brand)과 같은 색·방향: 왼쪽 초록 → 오른쪽 연두 */}
+          <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="2" y1="12" x2="22" y2="12">
+            <stop offset="0" stopColor="#22b35e" />
+            <stop offset="1" stopColor="#8bc34a" />
+          </linearGradient>
+        </defs>
+      )}
       {draw ? withPathLength(PATHS[name]) : PATHS[name]}
     </svg>
   )

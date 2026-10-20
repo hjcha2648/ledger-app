@@ -13,5 +13,5 @@ React + Vite + Tailwind CSS + Recharts. API 는 항상 상대 경로 `/api/...` 
 ## 영수증·명세서 인식 (거래 내역 화면)
 
 - 파일: `src/components/ReceiptImportDialog.jsx`, `src/api/receipts.js`(`analyzeReceipt`), `api/client.js`의 `api.upload`(FormData, Content-Type 은 브라우저가 설정), 목 `mockReceipts`
-- 거래 내역 화면의 **"영수증으로 추가"** 버튼 → 모달: 파일 선택(`image/*,application/pdf`, 5MB 초과는 바로 안내, 이미지는 미리보기) → "분석하기"(로딩 점·중복 클릭 방지) → 수정 가능한 항목 목록(포함 체크·날짜·유형·금액·카테고리·사용처·메모, `null`·빈 칸은 빨간 표시, 채워야 저장 가능) → "선택 항목 저장"(항목마다 기존 `createTransaction` 호출, 항목별 저장됨/실패 표시, 일부 실패해도 나머지 저장, 끝나면 목록 새로고침).
+- 거래 내역 화면의 **"영수증으로 추가"** 버튼 → 모달: 파일 선택 또는 폴더 창에서 **드래그 앤 드롭**(`image/*,application/pdf`, 5MB 초과·이미지/PDF 아님은 바로 안내, 이미지는 미리보기) → "분석하기"(로딩 점·중복 클릭 방지) → 수정 가능한 항목 목록(포함 체크·날짜·유형·금액·카테고리·사용처·메모, `null`·빈 칸은 빨간 표시, 채워야 저장 가능) → "선택 항목 저장"(항목마다 기존 `createTransaction` 호출, 항목별 저장됨/실패 표시, 일부 실패해도 나머지 저장, 끝나면 목록 새로고침).
 - 분석 결과는 입력 초안일 뿐 자동 저장하지 않는다. 안내 문구와 서버 오류 문구(413·422·429·503 `detail`)를 그대로 보여준다.

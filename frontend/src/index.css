@@ -144,6 +144,20 @@ body {
     stroke-dashoffset: 0;
   }
 }
+.icon-brand-hover {
+  transition: filter 0.3s ease-out;
+}
+.group:hover .icon-brand-hover,
+.group:focus-visible .icon-brand-hover {
+  stroke: var(--icon-grad);
+  /* 광채: 레이저 말풍선(LaserBubble)처럼 브랜드색이 번진다 */
+  filter: drop-shadow(0 0 3px rgb(34 179 94 / 0.55)) drop-shadow(0 0 10px rgb(139 195 74 / 0.45));
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-brand-hover {
+    transition: none;
+  }
+}
 .group:hover .icon-draw *,
 .group:focus-visible .icon-draw * {
   animation: icon-draw 0.8s ease-out both;

@@ -36,10 +36,10 @@ export default function HomePage() {
               key={l.to}
               to={l.to}
               aria-label={`${l.label}: ${l.desc}`}
-              className="focus-ring group relative animate-fade-up rounded-3xl p-2 text-ink-muted transition duration-300 hover:-translate-y-1.5 hover:text-accent focus-visible:-translate-y-1.5 focus-visible:text-accent motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
+              className="focus-ring group relative animate-fade-up rounded-3xl p-2 text-ink-muted transition duration-300 hover:-translate-y-1.5 focus-visible:-translate-y-1.5 motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
               style={delay(160 + i * 100)}
             >
-              <Icon name={l.icon} draw strokeWidth={1.4} className="h-16 w-16 sm:h-28 sm:w-28" />
+              <Icon name={l.icon} draw brandHover strokeWidth={1.7} className="h-16 w-16 sm:h-28 sm:w-28" />
               <HomeIconLabel label={l.label} />
             </Link>
           ))}

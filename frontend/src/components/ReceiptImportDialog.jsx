@@ -54,10 +54,8 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
 
   useEffect(() => () => previewUrl && URL.revokeObjectURL(previewUrl), [previewUrl])
 
-  const pickFile = (e) => {
-    const f = e.target.files?.[0]
-    e.target.value = '' // 같은 파일을 다시 골라도 change 가 일어나게
-    if (!f) return
+  // 파일 선택·드래그 앤 드롭이 함께 쓰는 검사: 5MB 초과·이미지/PDF 가 아닌 파일은 바로 안내한다
+  const acceptFile = (f) => {
     setAnalyzeError('')
     if (f.size > MAX_BYTES) {
       setFile(null)
@@ -65,9 +63,40 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
       setFileError('파일은 5MB 이하만 올릴 수 있습니다.')
       return
     }
+    if (!f.type.startsWith('image/') && f.type !== 'application/pdf') {
+      setFile(null)
+      setPreviewUrl('')
+      setFileError('JPEG·PNG·WEBP 이미지 또는 PDF 파일만 올릴 수 있습니다.')
+      return
+    }
     setFileError('')
     setFile(f)
     setPreviewUrl(f.type.startsWith('image/') ? URL.createObjectURL(f) : '')
+  }
+
+  const pickFile = (e) => {
+    const f = e.target.files?.[0]
+    e.target.value = '' // 같은 파일을 다시 골라도 change 가 일어나게
+    if (f) acceptFile(f)
+  }
+
+  // 드래그 앤 드롭: 폴더 창에서 끌어다 놓으면 첫 번째 파일을 선택한다 (분석 중에는 무시)
+  const [dragging, setDragging] = useState(false)
+  const onDragOver = (e) => {
+    if (analyzing || !e.dataTransfer?.types?.includes('Files')) return
+    e.preventDefault() // 놓을 수 있는 영역으로 표시
+    e.dataTransfer.dropEffect = 'copy'
+    setDragging(true)
+  }
+  const onDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false)
+  }
+  const onDrop = (e) => {
+    e.preventDefault()
+    setDragging(false)
+    if (analyzing) return
+    const f = e.dataTransfer.files?.[0]
+    if (f) acceptFile(f)
   }
 
   const analyze = async () => {
@@ -129,7 +158,11 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
 
   return (
     <Modal title="영수증으로 추가" onClose={onClose} wide>
-      <div className="space-y-4">
+      <div
+        className="space-y-4"
+        onDragOver={(e) => e.preventDefault()} // 영역 밖에 놓아도 브라우저가 파일을 열어 버리지 않게
+        onDrop={(e) => e.preventDefault()}
+      >
         <p className="flex items-start gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-ink-muted">
           <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
           <span>AI 인식 결과는 틀릴 수 있어요. 저장 전에 꼭 확인하세요. 영수증 파일은 서버에 남지 않고, 확인한 항목만 거래로 저장돼요.</span>
@@ -141,8 +174,14 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
+              onDragOver={onDragOver}
+              onDragEnter={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
               disabled={analyzing}
-              className="focus-ring flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 px-4 py-8 text-center text-sm text-ink-muted transition-colors hover:border-accent hover:bg-accent-soft/40 disabled:opacity-50 motion-reduce:transition-none"
+              className={`focus-ring flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center text-sm text-ink-muted transition-colors hover:border-accent hover:bg-accent-soft/40 disabled:opacity-50 motion-reduce:transition-none ${
+                dragging ? 'border-accent bg-accent-soft/40' : 'border-slate-300'
+              }`}
             >
               {previewUrl ? (
                 <img src={previewUrl} alt="선택한 영수증 미리보기" className="max-h-52 rounded-lg object-contain" />
@@ -150,7 +189,7 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
                 <Icon name="receipt" className="h-8 w-8" />
               )}
               <span className="font-medium text-gem-ink">{file ? file.name : '영수증·카드 명세서 사진 또는 PDF 선택'}</span>
-              <span className="text-xs">{file ? '눌러서 다른 파일 선택' : 'JPEG·PNG·WEBP 이미지 또는 PDF, 5MB 이하'}</span>
+              <span className="text-xs">{dragging ? '여기에 놓으면 선택돼요' : file ? '눌러서 다른 파일 선택 (끌어다 놓아도 돼요)' : '파일을 여기로 끌어다 놓거나 눌러서 선택 · JPEG·PNG·WEBP 이미지 또는 PDF, 5MB 이하'}</span>
             </button>
             {fileError && <ErrorMessage message={fileError} />}
             <ErrorMessage message={analyzeError} onRetry={file ? analyze : undefined} />
