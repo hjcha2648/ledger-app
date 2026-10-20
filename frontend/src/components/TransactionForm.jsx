@@ -10,11 +10,12 @@ import Select from './ui/Select'
 // initial: 수정 시 기존 거래, 등록 시 undefined
 // onSubmit(payload): Promise — 실패하면 throw
 // onAddCategory({name, type}): Promise<category>
-export default function TransactionForm({ initial, categories, onSubmit, onAddCategory, onCancel }) {
+// initialDate: 등록 시 거래일 미리 채움 값 'YYYY-MM-DD' (없으면 오늘)
+export default function TransactionForm({ initial, initialDate, categories, onSubmit, onAddCategory, onCancel }) {
   const [form, setForm] = useState({
     type: initial?.type ?? 'EXPENSE',
     amount: initial ? String(initial.amount_krw) : '',
-    occurred_on: initial?.occurred_on ?? today(),
+    occurred_on: initial?.occurred_on ?? initialDate ?? today(),
     category_id: initial ? String(initial.category_id) : '',
     merchant: initial?.merchant ?? '',
     memo: initial?.memo ?? '',

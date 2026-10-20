@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   createTransaction,
   deleteTransaction,
@@ -6,10 +7,13 @@ import {
   updateTransaction,
 } from '../api/transactions'
 import PageHeader from '../components/layout/PageHeader'
+import DayDetail from '../components/DayDetail'
 import MonthPicker from '../components/MonthPicker'
+import TransactionCalendar from '../components/TransactionCalendar'
 import TransactionForm from '../components/TransactionForm'
 import DataTable, { RowActions, RowIconButton, Td, TableCard, Tr } from '../components/DataTable'
 import TypeBadge from '../components/TypeBadge'
+import ViewToggle from '../components/ViewToggle'
 import Button from '../components/ui/Button'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
@@ -18,8 +22,10 @@ import Modal from '../components/ui/Modal'
 import Select from '../components/ui/Select'
 import Spinner from '../components/ui/Spinner'
 import useCategories from '../hooks/useCategories'
+import useMediaQuery from '../hooks/useMediaQuery'
+import { groupByDate } from '../utils/calendar'
 import { formatDate, formatKRW, formatSignedKRW, typeColorClass } from '../utils/format'
-import { currentMonth } from '../utils/month'
+import { currentMonth, formatDayLabel, today } from '../utils/month'
 
 const COLUMNS = [
   { label: '날짜' },
@@ -33,6 +39,19 @@ const COLUMNS = [
 
 export default function TransactionsPage() {
   const [month, setMonth] = useState(currentMonth)
+  // 보기 방식은 URL 쿼리(?view=calendar)로 유지한다. 쿼리가 없으면 표.
+  const [params, setParams] = useSearchParams()
+  const view = params.get('view') === 'calendar' ? 'calendar' : 'table'
+  const setView = (v) =>
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (v === 'calendar') next.set('view', 'calendar')
+      else next.delete('view')
+      return next
+    })
+  const [selectedDate, setSelectedDate] = useState(null) // 캘린더에서 고른 날짜 (null = 기본 날짜)
+  const [sheetOpen, setSheetOpen] = useState(false) // 모바일 하단 시트(날짜 상세)
+  const isDesktop = useMediaQuery('(min-width: 640px)')
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,6 +74,8 @@ export default function TransactionsPage() {
     setLoading(true)
     setError('')
     setMonth(m)
+    setSelectedDate(null) // 월을 바꾸면 선택 날짜 초기화
+    setSheetOpen(false)
   }
 
   useEffect(() => {
@@ -88,6 +109,30 @@ export default function TransactionsPage() {
     [transactions, activeCat],
   )
 
+  // 캘린더: 이미 받은 월 거래를 날짜별로 묶는다. 선택 날짜가 없으면 오늘(해당 월이면) 또는 그 달 1일.
+  const byDate = useMemo(() => groupByDate(visible), [visible])
+  const effectiveDate = selectedDate?.startsWith(month) ? selectedDate : today().startsWith(month) ? today() : `${month}-01`
+  const categoryLabel = (t) => t.category_name ?? categoryName.get(t.category_id) ?? '-'
+  const selectDate = (date) => {
+    setSelectedDate(date)
+    if (!isDesktop) setSheetOpen(true)
+  }
+  // 날짜 상세에서의 수정·삭제·등록: 모바일 시트를 닫고 기존 모달을 연다
+  const detailActions = {
+    onEdit: (t) => {
+      setSheetOpen(false)
+      setEditing(t)
+    },
+    onDelete: (t) => {
+      setSheetOpen(false)
+      setDeleting(t)
+    },
+    onCreate: (date) => {
+      setSheetOpen(false)
+      setEditing({ initialDate: date })
+    },
+  }
+
   const totals = useMemo(() => {
     const sum = (type) => visible.filter((t) => t.type === type).reduce((s, t) => s + t.amount_krw, 0)
     return { income: sum('INCOME'), expense: sum('EXPENSE') }
@@ -99,6 +144,13 @@ export default function TransactionsPage() {
     if (chipFocus === t.type) return t.type === 'INCOME' ? 'income' : 'expense'
     return 'dim'
   }
+  // 캘린더 보기에서 칩을 가리키면 칩도 같은 색 계열로 살짝 강조한다 (표 보기·잔액 칩은 그대로)
+  const chipTone = (key) =>
+    view === 'calendar' && chipFocus === key
+      ? key === 'INCOME'
+        ? 'border-income/40 bg-income/10'
+        : 'border-expense/40 bg-expense/10'
+      : ''
   const chipProps = (key) => ({
     tabIndex: 0,
     onMouseEnter: () => setChipFocus(key),
@@ -131,22 +183,34 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* 헤더: 왼쪽 [제목 블록], 오른쪽 [월 선택기, 카테고리 선택]. 좁아지면 줄바꿈 */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <PageHeader icon="transactions" title="거래 내역" subtitle="수입과 지출을 기록하고 관리해요" />
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
           <MonthPicker month={month} onChange={changeMonth} />
-          <Button onClick={() => setEditing({})} disabled={cats.loading || Boolean(cats.error)}>
-            + 거래 등록
-          </Button>
+          {!loading && !error && categoryOptions.length > 0 && (
+            <Select
+              aria-label="카테고리별 보기"
+              className="w-full sm:w-auto"
+              fieldClassName="h-[2.625rem] min-w-[10.5rem] rounded-full pr-10 pl-4 whitespace-nowrap"
+              value={activeCat == null ? '' : String(activeCat)}
+              onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
+              options={[
+                { value: '', label: '전체 카테고리' },
+                ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
+              ]}
+            />
+          )}
         </div>
       </div>
 
+      {/* 합계 칩(왼쪽) + [보기 스위치][+ 거래 등록](오른쪽 끝, 같은 높이). 좁아지면 줄바꿈하고 모바일에서는 스위치 옆에서 버튼이 남는 폭을 쓴다 */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="chip focus-ring" {...chipProps('INCOME')}>
+        <span className={`chip focus-ring transition-colors duration-150 motion-reduce:transition-none ${chipTone('INCOME')}`} {...chipProps('INCOME')}>
           <span className="h-2 w-2 rounded-full bg-income" />
           수입 <strong className="num-strong text-income-ink">{formatKRW(totals.income)}</strong>
         </span>
-        <span className="chip focus-ring" {...chipProps('EXPENSE')}>
+        <span className={`chip focus-ring transition-colors duration-150 motion-reduce:transition-none ${chipTone('EXPENSE')}`} {...chipProps('EXPENSE')}>
           <span className="h-2 w-2 rounded-full bg-expense" />
           지출 <strong className="num-strong text-expense-ink">{formatKRW(totals.expense)}</strong>
         </span>
@@ -154,63 +218,96 @@ export default function TransactionsPage() {
           <span className="h-2 w-2 rounded-full bg-gem-ink" />
           잔액 <strong className="num-strong">{formatKRW(totals.income - totals.expense)}</strong>
         </span>
-        {/* 카테고리별 보기: 한 칸에서 선택. 선택하면 표와 위 합계가 그 카테고리만 반영한다 */}
-        {!loading && !error && categoryOptions.length > 0 && (
-          <Select
-            aria-label="카테고리별 보기"
-            className="w-full sm:ml-auto sm:w-40"
-            value={activeCat == null ? '' : String(activeCat)}
-            onChange={(e) => setCatFilter(e.target.value === '' ? null : Number(e.target.value))}
-            options={[
-              { value: '', label: '전체 카테고리' },
-              ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
-            ]}
-          />
-        )}
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          <ViewToggle value={view} onChange={setView} />
+          <Button className="h-10 flex-1 sm:h-9 sm:flex-none" onClick={() => setEditing({})} disabled={cats.loading || Boolean(cats.error)}>
+            + 거래 등록
+          </Button>
+        </div>
       </div>
 
       <ErrorMessage message={cats.error} onRetry={cats.reload} />
       <ErrorMessage message={actionError} />
 
-      <TableCard>
-        {loading ? (
-          <Spinner />
+      {view === 'calendar' ? (
+        loading ? (
+          <div className="card">
+            <Spinner />
+          </div>
         ) : error ? (
-          <div className="p-4">
+          <div className="card p-4">
             <ErrorMessage message={error} onRetry={reload} />
           </div>
-        ) : transactions.length === 0 ? (
-          <EmptyState message="이 달에 등록된 거래가 없습니다." />
         ) : (
-          <DataTable columns={COLUMNS}>
-            {visible.map((t) => (
-              <Tr key={t.id} tone={rowTone(t)}>
-                <Td className="whitespace-nowrap text-ink-muted">{formatDate(t.occurred_on)}</Td>
-                <Td>
-                  <TypeBadge type={t.type} />
-                </Td>
-                <Td>{t.category_name ?? categoryName.get(t.category_id) ?? '-'}</Td>
-                <Td className="text-ink-muted">{t.merchant || '-'}</Td>
-                <Td className="max-w-48 truncate text-ink-muted">{t.memo || '-'}</Td>
-                <Td align="right" className={`num-strong whitespace-nowrap ${typeColorClass(t.type)}`}>
-                  {formatSignedKRW(t.type, t.amount_krw)}
-                </Td>
-                <Td align="right" className="whitespace-nowrap">
-                  <RowActions>
-                    <RowIconButton icon="edit" label="거래 수정" onClick={() => setEditing(t)} />
-                    <RowIconButton icon="trash" label="거래 삭제" tone="danger" onClick={() => setDeleting(t)} />
-                  </RowActions>
-                </Td>
-              </Tr>
-            ))}
-          </DataTable>
-        )}
-      </TableCard>
+          <div className="space-y-5">
+            <TransactionCalendar
+              month={month}
+              byDate={byDate}
+              selectedDate={effectiveDate}
+              onSelectDate={selectDate}
+              highlightType={chipFocus}
+            />
+            {isDesktop && (
+              <section className="card p-5" aria-label="선택한 날짜의 거래">
+                <DayDetail date={effectiveDate} group={byDate.get(effectiveDate)} categoryLabel={categoryLabel} {...detailActions} />
+              </section>
+            )}
+          </div>
+        )
+      ) : (
+        <TableCard>
+          {loading ? (
+            <Spinner />
+          ) : error ? (
+            <div className="p-4">
+              <ErrorMessage message={error} onRetry={reload} />
+            </div>
+          ) : transactions.length === 0 ? (
+            <EmptyState message="이 달에 등록된 거래가 없습니다." />
+          ) : (
+            <DataTable columns={COLUMNS}>
+              {visible.map((t) => (
+                <Tr key={t.id} tone={rowTone(t)}>
+                  <Td className="whitespace-nowrap text-ink-muted">{formatDate(t.occurred_on)}</Td>
+                  <Td>
+                    <TypeBadge type={t.type} />
+                  </Td>
+                  <Td>{t.category_name ?? categoryName.get(t.category_id) ?? '-'}</Td>
+                  <Td className="text-ink-muted">{t.merchant || '-'}</Td>
+                  <Td className="max-w-48 truncate text-ink-muted">{t.memo || '-'}</Td>
+                  <Td align="right" className={`num-strong whitespace-nowrap ${typeColorClass(t.type)}`}>
+                    {formatSignedKRW(t.type, t.amount_krw)}
+                  </Td>
+                  <Td align="right" className="whitespace-nowrap">
+                    <RowActions>
+                      <RowIconButton icon="edit" label="거래 수정" onClick={() => setEditing(t)} />
+                      <RowIconButton icon="trash" label="거래 삭제" tone="danger" onClick={() => setDeleting(t)} />
+                    </RowActions>
+                  </Td>
+                </Tr>
+              ))}
+            </DataTable>
+          )}
+        </TableCard>
+      )}
+
+      {!isDesktop && sheetOpen && view === 'calendar' && (
+        <Modal title={formatDayLabel(effectiveDate)} onClose={() => setSheetOpen(false)}>
+          <DayDetail
+            date={effectiveDate}
+            group={byDate.get(effectiveDate)}
+            categoryLabel={categoryLabel}
+            showTitle={false}
+            {...detailActions}
+          />
+        </Modal>
+      )}
 
       {editing && (
         <Modal title={editing.id ? '거래 수정' : '거래 등록'} onClose={() => setEditing(null)}>
           <TransactionForm
             initial={editing.id ? editing : undefined}
+            initialDate={editing.id ? undefined : editing.initialDate}
             categories={cats.categories}
             onAddCategory={cats.addCategory}
             onSubmit={handleSubmit}
