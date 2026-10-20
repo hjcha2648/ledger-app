@@ -4,13 +4,14 @@
 > 담당: B — 백엔드·DB / 브랜치: `feat/backend`
 > 목표: FastAPI + SQLAlchemy + MariaDB로 인증·카테고리·거래·정기결제(C/R/D)·대시보드 API를 완성하고, A가 EC2에 그대로 배포할 수 있는 상태로 넘긴다.
 
-### 진행 현황 (2026-10-19 기준)
+### 진행 현황 (2026-10-20 기준)
 
 | 상태 | STEP |
 |---|---|
-| ✅ 완료 | 0~5, 7, 8, 10, 11, 13 / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) |
-| ⏳ 팀 대기 | 6 (API 계약 공유·PR 병합), 9·12 (EC2·CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
-| ❓ 결정 필요 | `created_at` 등 UTC 시각에 `Z` 표기 여부 (C 답변 대기) |
+| ✅ 완료 | 0~8, 10, 11, 13 / 14 중 오류 형식 정리·README·시연 데이터 스크립트(`app/seed_demo.py`) / PR #1~#6 `main` 병합 (프론트 포함) |
+| 🔜 바로 가능 | C 화면과 로컬 연동 테스트 (STEP 8·12, 프론트 `main` 병합 완료) |
+| ⏳ 팀 대기 | 9·12 (EC2·CloudFront), 14 나머지 (EC2 시연 데이터·백업·리허설) |
+| ✔️ 결정됨 | `created_at` 등 UTC 시각은 `Z` 없이 표기 (`docs/api-contract.md`) |
 
 - API 14개 구현 완료, 로컬 스모크 테스트 51개 PASS
 
@@ -214,8 +215,8 @@ ENABLE_DOCS=true
 - [x] `config.py`, `database.py` (`pool_pre_ping=True`, `pool_recycle=3600`)
 - [x] 4개 모델 작성 + `init_db.py` (create_all + 시드, 재실행 안전)
 - [x] `security.py`, `deps.py`, `/api/auth/register|login|me`, `/api/health`
-- [ ] **§5 API 계약을 C와 확정** → 변경 사항 반영 후 팀 공유 (C는 이걸로 목 데이터 작업)
-- [ ] A에게 실행 명령/포트/환경 변수 목록 전달 (§8)
+- [x] **§5 API 계약을 C와 확정** → 변경 사항 반영 후 팀 공유 (C는 이걸로 목 데이터 작업)
+- [x] A에게 실행 명령/포트/환경 변수 목록 전달 (§8) — `docs/agent-infra.md`
 - 종료 조건: 로컬에서 회원가입 → 로그인 → `/api/auth/me` 성공, 중복 가입 409
 
 ### Day 2 — 카테고리 + 거래 CRUD
@@ -385,9 +386,9 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
 
 ### STEP 6. API 계약 확정·공유 — Day 1 종료 전
 
-- [ ] §5 내용을 C와 함께 검토, 바뀐 필드명/형식을 이 문서에 반영
-- [ ] A에게 §8 전달 (실행 명령, 포트, 환경 변수 키, `init_db` 명령)
-- [ ] `feat/backend` 푸시 → `main`으로 PR 생성·병합 (인증까지 동작하는 상태)
+- [x] §5 내용을 C와 함께 검토, 바뀐 필드명/형식을 이 문서에 반영 — `docs/api-contract.md`
+- [x] A에게 §8 전달 (실행 명령, 포트, 환경 변수 키, `init_db` 명령)
+- [x] `feat/backend` 푸시 → `main`으로 PR 생성·병합 (인증까지 동작하는 상태)
 
 ### STEP 7. 카테고리 API — Day 2 오전
 
@@ -405,7 +406,7 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
   - POST/PATCH 모두 최종 `type`·`category_id` 조합을 `get_usable_category`로 검증
 - [x] 확인: 등록 → 월별 조회(1일·말일 경계) → 수정 → 삭제, 금액 0·유형 불일치 422, 계정 B로 A 거래 수정/삭제 404
 - [ ] C의 거래 화면과 로컬 연동 테스트
-- [ ] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합 — 커밋 완료, PR 병합 대기
+- [x] 커밋: `feat(backend): 거래 CRUD 및 월별 조회 API` → PR 병합
 
 ### STEP 9. EC2 최초 배포 지원 — Day 2 오후
 
@@ -428,7 +429,7 @@ mariadb -u app_user -p -h 127.0.0.1 ledger_db -e "SHOW TABLES; SELECT COUNT(*) F
   - `expense_by_category`: 카테고리별 지출 합 내림차순
   - `monthly_compare`: 최근 6개월, 빈 달 0 채움, 오래된 달부터
 - [x] 확인: 거래 목록 합계와 summary 일치, 원형 합 = 지출 합, 막대 항상 6개, 정기결제 금액 미포함
-- [ ] 커밋: `feat(backend): 대시보드 집계 API` → PR 병합 — 커밋 완료, PR 병합 대기
+- [x] 커밋: `feat(backend): 대시보드 집계 API` → PR 병합
 
 ### STEP 12. CloudFront 경유 E2E 연결 — Day 3 오후
 
