@@ -189,6 +189,15 @@ check "챗봇 토큰 없이 401" "$CODE" 401
 req POST "/chat" "$TOKEN_A" '{"month":"'"$MONTH"'","messages":[{"role":"assistant","content":"hi"}]}'
 check "챗봇 마지막 메시지 assistant → 422" "$CODE" 422
 
+# ---------------------------------------------------------------- 명세서 메일 (실제 발송 없이 인증·검증만)
+section "reports"
+req POST "/reports/monthly-email" "" '{"month":"'"$MONTH"'"}'
+check "명세서 메일 토큰 없이 401" "$CODE" 401
+req POST "/reports/monthly-email" "$TOKEN_A" '{}'
+check "명세서 메일 month 누락 422" "$CODE" 422
+req GET "/reports/email-status" ""
+check "메일 인증 상태 토큰 없이 401" "$CODE" 401
+
 # ---------------------------------------------------------------- 정리
 section "cleanup"
 req DELETE "/subscriptions/$SUB_ID" "$TOKEN_A"
