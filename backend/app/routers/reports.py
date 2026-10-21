@@ -286,6 +286,11 @@ def _require_enabled() -> None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=UNAVAILABLE)
 
 
+def _is_demo(user: User) -> bool:
+    """시연용 계정(EMAIL_DEMO_ADDRESSES): 인증된 것처럼 응답하고 실제 발송은 하지 않는다"""
+    return user.email.lower() in settings.email_demo_address_set
+
+
 # 인증 메일 요청은 사용자별 1분에 1번 (AWS가 보내는 메일이라 남용 방지)
 _verify_requested: dict[int, float] = {}
 _verify_lock = threading.Lock()
@@ -295,6 +300,8 @@ VERIFY_COOLDOWN_SECONDS = 60
 @router.get("/email-status", response_model=EmailStatusResponse)
 def get_email_status(current_user: User = Depends(get_current_user)):
     _require_enabled()
+    if _is_demo(current_user):
+        return EmailStatusResponse(email=mask_email(current_user.email), status="verified")
     try:
         state = _recipient_status(current_user.email)
     except Exception as e:
@@ -308,6 +315,8 @@ def request_email_verification(response: Response, current_user: User = Depends(
     """본인 주소를 SES에 등록해 AWS 인증 메일을 보낸다. 이미 인증됐거나 대기 중이면 메일을 다시 보내지 않는다."""
     _require_enabled()
     masked = mask_email(current_user.email)
+    if _is_demo(current_user):
+        return EmailStatusResponse(email=masked, status="verified")
     try:
         state = _recipient_status(current_user.email)
         if state != "unverified":
@@ -337,6 +346,10 @@ def send_monthly_email(
     _require_enabled()
     data = _collect(db, current_user, body.month)  # month 형식 오류는 여기서 422
     _reserve_slot(current_user.id)
+
+    if _is_demo(current_user):
+        logger.info("Demo account: monthly email not sent (user_id=%s)", current_user.id)
+        return MonthlyEmailResponse(sent_to=mask_email(current_user.email))
 
     try:
         _send(

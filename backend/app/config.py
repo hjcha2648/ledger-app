@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     ses_region: str = "ap-northeast-2"
     ses_sender: str = ""  # SES에서 인증한 발신 주소 (예: noreply@lsj.mzsec.cloud)
     email_cooldown_seconds: int = 300  # 사용자별 재발송 대기 시간
+    # 시연용 계정 주소(쉼표 구분). 이 계정은 인증된 사용자처럼 보이고 발송 성공(202)을 받지만 실제로는 SES를 부르지 않는다.
+    # 메일을 받을 수 없는 가상 주소(예: demo@example.com)로 화면 흐름만 시연할 때 쓴다. 비우면 사용 안 함
+    email_demo_addresses: str = ""
 
     # 영수증·명세서 인식 (Bedrock 멀티모달, PLAN.md 기능 3). 기본은 꺼짐 — 켜지 않으면 503
     receipt_enabled: bool = False
@@ -37,6 +40,10 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def email_demo_address_set(self) -> set[str]:
+        return {a.strip().lower() for a in self.email_demo_addresses.split(",") if a.strip()}
 
 
 settings = Settings()

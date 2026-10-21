@@ -21,7 +21,7 @@
 | 항목 | 내용 | 담당 | 상태 |
 |---|---|---|---|
 | 범위 변경 합의 | [AGENTS.md](AGENTS.md) 4번 제외 목록에 "AI 기능"이 있다 → "가계부 질문 챗봇(Bedrock, 읽기 전용)은 허용"으로 수정 (기능 2·3도 같은 절에 예외로 추가). 안 바꾸면 각자의 AI 도우미가 작업을 범위 위반으로 막는다 | B (통합 담당) | [x] |
-| PRD 반영 | PRD에 챗봇 절 추가(범위·제외 사항) | B | [ ] |
+| PRD 반영 | PRD에 챗봇 절 추가(범위·제외 사항) — 10/21 PRD.md를 v3.2 원문으로 교체하고 15장에 추가 기능 3개 요약 | B | [x] |
 | 모델 | 기본 `anthropic.claude-opus-5-5`. 비용·속도를 우선하면 Sonnet 5.5 / Haiku 5.5로 바꿀 수 있다 (`BEDROCK_MODEL_ID` 환경 변수로만 교체) | 팀 | [ ] |
 | 리전 | `ap-northeast-2`에서 해당 모델을 쓸 수 있는지 Bedrock 콘솔에서 확인. 없으면 지원 리전 또는 inference profile 사용 | A | [ ] |
 | 확인 결과 (10/20, B) | ✅ 해결. 모델 액세스는 이미 승인돼 있었음. 서울 리전은 **Bedrock Runtime 경로 + global inference profile ID**로만 호출된다: `BEDROCK_MODEL_ID=global.anthropic.claude-opus-5-5` (리전 없는 `anthropic.claude-opus-5-5`는 400, Mantle 엔드포인트는 404). 로컬에서 실제 답변 확인(3~6초) | A·B | [x] |
