@@ -63,7 +63,9 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
       setFileError('파일은 5MB 이하만 올릴 수 있습니다.')
       return
     }
-    if (!f.type.startsWith('image/') && f.type !== 'application/pdf') {
+    // 끌어다 놓은 파일은 OS 설정에 따라 type 이 비어 있을 수 있어, 비어 있으면 확장자로 판단한다 (최종 형식 판단은 서버가 내용으로 한다)
+    const ok = f.type ? f.type.startsWith('image/') || f.type === 'application/pdf' : /\.(jpe?g|png|webp|pdf)$/i.test(f.name)
+    if (!ok) {
       setFile(null)
       setPreviewUrl('')
       setFileError('JPEG·PNG·WEBP 이미지 또는 PDF 파일만 올릴 수 있습니다.')
@@ -71,7 +73,7 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
     }
     setFileError('')
     setFile(f)
-    setPreviewUrl(f.type.startsWith('image/') ? URL.createObjectURL(f) : '')
+    setPreviewUrl(/^image\//.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name) ? URL.createObjectURL(f) : '')
   }
 
   const pickFile = (e) => {
@@ -83,7 +85,7 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
   // 드래그 앤 드롭: 폴더 창에서 끌어다 놓으면 첫 번째 파일을 선택한다 (분석 중에는 무시)
   const [dragging, setDragging] = useState(false)
   const onDragOver = (e) => {
-    if (analyzing || !e.dataTransfer?.types?.includes('Files')) return
+    if (analyzing || !Array.from(e.dataTransfer?.types ?? []).includes('Files')) return
     e.preventDefault() // 놓을 수 있는 영역으로 표시
     e.dataTransfer.dropEffect = 'copy'
     setDragging(true)
@@ -171,13 +173,11 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
         {rows === null ? (
           <>
             <input ref={inputRef} type="file" accept={ACCEPT} onChange={pickFile} className="sr-only" tabIndex={-1} aria-label="영수증 파일 선택" />
+            {/* 드래그 이벤트는 <button> 이 아니라 바깥 div 가 받는다 (일부 브라우저는 버튼 위의 파일 드롭 이벤트를 전달하지 않는다) */}
+            <div onDragOver={onDragOver} onDragEnter={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              onDragOver={onDragOver}
-              onDragEnter={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
               disabled={analyzing}
               className={`focus-ring flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center text-sm text-ink-muted transition-colors hover:border-accent hover:bg-accent-soft/40 disabled:opacity-50 motion-reduce:transition-none ${
                 dragging ? 'border-accent bg-accent-soft/40' : 'border-slate-300'
@@ -191,6 +191,7 @@ export default function ReceiptImportDialog({ categories, onClose, onSaved }) {
               <span className="font-medium text-gem-ink">{file ? file.name : '영수증·카드 명세서 사진 또는 PDF 선택'}</span>
               <span className="text-xs">{dragging ? '여기에 놓으면 선택돼요' : file ? '눌러서 다른 파일 선택 (끌어다 놓아도 돼요)' : '파일을 여기로 끌어다 놓거나 눌러서 선택 · JPEG·PNG·WEBP 이미지 또는 PDF, 5MB 이하'}</span>
             </button>
+            </div>
             {fileError && <ErrorMessage message={fileError} />}
             <ErrorMessage message={analyzeError} onRetry={file ? analyze : undefined} />
             {analyzing && (
