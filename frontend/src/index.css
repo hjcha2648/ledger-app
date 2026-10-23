@@ -269,3 +269,24 @@ body {
 .recharts-wrapper *:focus {
   outline: none;
 }
+
+/* 도넛 차트 등장: 12시 방향에서 시계 방향으로 쓸듯이 나타난다 (마스크 각도만 애니메이션하므로 호버 반응과 무관).
+   동작 줄이기이면 컴포넌트가 이 클래스를 붙이지 않아 즉시 전체가 보인다. */
+@property --donut-reveal {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 360deg;
+}
+@keyframes donut-reveal {
+  from {
+    --donut-reveal: 0deg;
+  }
+  to {
+    --donut-reveal: 360deg;
+  }
+}
+.donut-reveal {
+  -webkit-mask-image: conic-gradient(from 0deg at 50% 50%, #000 var(--donut-reveal), transparent var(--donut-reveal));
+  mask-image: conic-gradient(from 0deg at 50% 50%, #000 var(--donut-reveal), transparent var(--donut-reveal));
+  animation: donut-reveal 0.8s ease-out both;
+}

@@ -84,8 +84,7 @@ export default function CategoryPieChart({ data, prevData }) {
   const [hoverId, setHoverId] = useState(null) // 마우스·포커스로 가리킨 행(도넛·목록 양방향)
   const [pinnedId, setPinnedId] = useState(null) // 클릭으로 고정한 행
 
-  // 호버(activeId 변경)로 다시 렌더될 때 Pie 의 data 참조가 바뀌면 조각 그리기 애니메이션이 처음부터 다시 돌아
-  // 반응이 늦어 보인다. 데이터가 바뀔 때만 다시 계산해 참조를 유지한다.
+  // 호버(activeId 변경)로 다시 렌더돼도 Pie 의 data 참조가 바뀌지 않도록, 데이터가 바뀔 때만 다시 계산한다.
   const rows = useMemo(() => buildRows(data, prevData ?? null), [data, prevData])
   const slices = useMemo(() => rows.filter((r) => r.hasSlice), [rows])
   const total = slices.reduce((s, c) => s + c.cur, 0)
@@ -123,6 +122,9 @@ export default function CategoryPieChart({ data, prevData }) {
         role="img"
         aria-label="카테고리별 지출 비율 도넛 차트"
       >
+        {/* 등장 효과는 Recharts 애니메이션이 아니라 이 래퍼의 CSS 마스크(index.css .donut-reveal)로 한다.
+            Recharts 애니메이션은 그리는 도중 호버로 다시 렌더되면 늦어지거나 처음부터 다시 돌아 반응이 지연됐다. */}
+        <div className={`h-full w-full ${reduced ? '' : 'donut-reveal'}`}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -137,15 +139,14 @@ export default function CategoryPieChart({ data, prevData }) {
               startAngle={90}
               endAngle={-270}
               shape={renderShape}
-              isAnimationActive={!reduced}
-              animationDuration={800}
-              animationEasing="ease-out"
+              isAnimationActive={false}
               onMouseEnter={(_, i) => setHoverId(slices[i].rid)}
               onMouseLeave={() => setHoverId(null)}
               onClick={(_, i) => togglePin(slices[i].rid)}
             />
           </PieChart>
         </ResponsiveContainer>
+        </div>
 
         {/* 도넛 중앙: 항상 총 지출 (호버해도 바뀌지 않는다). 구멍 지름의 약 70% 안에 들어가게 폭을 제한 */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
